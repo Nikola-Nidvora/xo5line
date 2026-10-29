@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вход для администратора</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font:16px/1.5 "Segoe UI",Tahoma,sans-serif;
+background:linear-gradient(135deg,#0f1419 0%,#1d2836 100%);
+display:flex;justify-content:center;align-items:center;padding:20px;color:#dbe6f2}
+.card{background:#17202b;border:1px solid #2b3a4d;border-radius:14px;
+padding:28px 26px;max-width:420px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+h1{margin:0 0 6px;font-size:20px;color:#4da3ff}
+p.hint{margin:4px 0 18px;font-size:13px;opacity:.7}
+input{width:100%;padding:11px 12px;margin:6px 0;background:#1d2836;color:#dbe6f2;
+border:1px solid #2b3a4d;border-radius:8px;font-size:15px}
+input:focus{outline:none;border-color:#4da3ff}
+button{width:100%;padding:11px;margin:10px 0 4px;background:#4da3ff;color:#06111c;
+border:0;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}
+button:hover{filter:brightness(1.1)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.msg{padding:10px 12px;border-radius:8px;margin:10px 0;font-size:14px;display:none}
+.msg.error{background:#3a1f1f;color:#ff8080;border:1px solid #5a2828;display:block}
+.msg.ok{background:#1f3a28;color:#7ee0a8;border:1px solid #2a5a38;display:block}
+.dim{opacity:.65;font-size:12px;margin-top:14px}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>Вход для администратора</h1>
+<p class="hint">Имя и пароль — как в игре. Доступ только для учётных записей с маркером администратора.</p>
+<form id="f" novalidate>
+<input id="n" type="text" placeholder="Имя" autocomplete="username" autofocus>
+<input id="p" type="password" placeholder="Пароль" autocomplete="current-password">
+<div class="msg error" id="err"></div>
+<div class="msg ok" id="ok"></div>
+<button type="submit" id="btn">Войти</button>
+</form>
+<p class="dim">Если вы не администратор проекта — эта страница не для вас. Закройте вкладку.</p>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  'use strict';
+  var ADMIN_TARGET = 'xo5_admin_a0.8.1.html';
+  var EMAIL_DOMAIN = '@xo5line.local';
+  firebase.initializeApp({
+    apiKey: "AIzaSyBErGlVe3j1IIPYiBGz2TAJxr96uV1Nff0",
+    authDomain: "xo5line.firebaseapp.com",
+    projectId: "xo5line",
+    storageBucket: "xo5line.firebasestorage.app",
+    messagingSenderId: "465510523600",
+    appId: "1:465510523600:web:ad8c4b628d32ea3dc2f4d5"
+  });
+  var auth = firebase.auth();
+  var db = firebase.firestore();
+
+  function $(id){ return document.getElementById(id); }
+  function showErr(t){ var e=$('err'),o=$('ok'); e.textContent=t; e.style.display='block'; o.style.display='none'; }
+  function showOk(t){ var e=$('err'),o=$('ok'); o.textContent=t; o.style.display='block'; e.style.display='none'; }
+  function hideMsg(){ $('err').style.display='none'; $('ok').style.display='none'; }
+
+  // Если уже вошли и маркер есть — сразу редирект.
+  auth.onAuthStateChanged(function(u){
+    if (!u) return;
+    db.collection('admins').doc(u.uid).get().then(function(s){
+      if (s.exists) { window.location.replace(ADMIN_TARGET); }
+    }).catch(function(){});
+  });
+
+  $('f').addEventListener('submit', function(ev){
+    ev.preventDefault();
+    hideMsg();
+    var name = ($('n').value || '').trim();
+    var pass = $('p').value || '';
+    if (!name || !pass) { showErr('Введите имя и пароль.'); return; }
+    var btn = $('btn');
+    btn.disabled = true;
+    btn.textContent = 'Проверка...';
+    var lower = name.toLowerCase();
+    var cands = (lower === name) ? [name] : [name, lower];
+    var i = 0;
+    function tryNext(){
+      if (i >= cands.length) {
+        btn.disabled = false;
+        btn.textContent = 'Войти';
+        showErr('Неверное имя или пароль, либо нет прав администратора.');
+        return;
+      }
+      auth.signInWithEmailAndPassword(cands[i] + EMAIL_DOMAIN, pass)
+        .then(function(cred){
+          return db.collection('admins').doc(cred.user.uid).get().then(function(s){
+            if (s.exists) {
+              showOk('Доступ подтверждён. Переход...');
+              setTimeout(function(){ window.location.replace(ADMIN_TARGET); }, 400);
+            } else {
+              auth.signOut().catch(function(){});
+              btn.disabled = false;
+              btn.textContent = 'Войти';
+              showErr('Аккаунт существует, но не является администратором.');
+            }
+          });
+        })
+        .catch(function(e){
+          var code = e && e.code ? e.code : '';
+          if (code === 'auth/too-many-requests' || code === 'auth/network-request-failed') {
+            btn.disabled = false;
+            btn.textContent = 'Войти';
+            showErr(code === 'auth/network-request-failed' ? 'Нет связи с сервером.' : 'Слишком много попыток.');
+            return;
+          }
+          i++; tryNext();
+        });
+    }
+    tryNext();
+  });
+})();
+</script>
+</body>
+</html>
