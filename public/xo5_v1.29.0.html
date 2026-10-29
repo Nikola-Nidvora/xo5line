@@ -1,0 +1,5229 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5 в ряд - Бесконечное поле</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+font-family: 'Segoe UI', Tahoma, sans-serif;
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+min-height: 100vh;
+display: flex;
+justify-content: center;
+align-items: center;
+color: #333;
+overflow: auto;
+}
+.container {
+background: white;
+border-radius: 20px;
+box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+padding: 25px;
+display: flex;
+flex-direction: column;
+overflow: hidden;
+transition: width 0.3s, height 0.3s;
+position: relative;
+margin: auto;
+}
+.container.compact-mode {
+width: 420px;
+max-width: 90vw;
+height: auto;
+max-height: 85vh;
+}
+.container.compact-mode.lobby-min {
+min-width: 400px;
+min-height: 520px;
+}
+.container.game-mode {
+width: 95vw;
+max-width: 1200px;
+height: 95vh;
+max-height: 900px;
+}
+h1 { text-align: center; color: #667eea; margin-bottom: 12px; font-size: 1.6em; }
+h2 { color: #667eea; margin-bottom: 8px; font-size: 1.1em; }
+.screen { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+.screen.active { display: flex; }
+.scrollable { flex: 1; overflow-y: auto; padding-right: 5px; }
+#lobby-screen .scrollable {
+overflow: hidden;
+display: flex;
+flex-direction: column;
+padding-right: 0;
+}
+#lobby-screen .lobby-list {
+flex: 1;
+min-height: 0;
+max-height: none;
+overflow-y: auto;
+margin: 5px 0;
+padding-right: 5px;
+}
+input {
+width: 100%; padding: 12px; margin: 8px 0;
+border: 2px solid #e0e0e0; border-radius: 10px; font-size: 15px;
+}
+input:focus { outline: none; border-color: #667eea; }
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+display: none;
+width: 0;
+height: 0;
+}
+button {
+width: 100%; padding: 12px; margin: 6px 0;
+background: #667eea; color: white; border: none; border-radius: 10px;
+font-size: 15px; font-weight: bold; cursor: pointer; transition: all 0.2s;
+}
+button:hover { background: #5568d3; transform: translateY(-1px); }
+button:disabled { background: #bdbdbd; cursor: not-allowed; transform: none; }
+button.secondary { background: #e0e0e0; color: #333; }
+button.secondary:hover { background: #d0d0d0; }
+button.danger { background: #ff5252; }
+button.danger:hover { background: #d32f2f; }
+.error, .success {
+padding: 10px; border-radius: 8px; margin: 8px 0;
+color: white; display: none; font-size: 14px;
+}
+.error { background: #ff5252; }
+.success { background: #4caf50; }
+.password-wrapper { position: relative; margin: 8px 0; }
+.password-wrapper input { margin: 0; padding-right: 46px; }
+.eye-btn {
+position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+width: auto; padding: 4px 8px; margin: 0;
+background: transparent; color: #888;
+border: none; border-radius: 6px;
+font-size: 16px; cursor: pointer; line-height: 1;
+}
+.eye-btn:hover { background: #e0e0e0; transform: translateY(-50%); }
+.auth-hint {
+font-size: 11px; color: #999; text-align: center;
+margin: -2px 0 6px 0; line-height: 1.4;
+}
+.consent-wrap {
+display: flex; align-items: flex-start; gap: 8px;
+margin: 6px 0 2px 0; cursor: pointer;
+}
+.consent-wrap input { width: auto; margin: 2px 0 0 0; flex-shrink: 0; }
+.consent-text { font-size: 11px; color: #777; line-height: 1.4; }
+.consent-text a { color: #667eea; }
+.update-banner {
+display: none;
+align-items: center;
+gap: 8px;
+background: #fff3cd;
+border: 2px solid #ff9800;
+border-radius: 10px;
+padding: 8px 12px;
+margin: 0 0 8px 0;
+font-size: 13px;
+color: #856404;
+flex-shrink: 0;
+}
+.update-banner.active { display: flex; }
+.update-banner-text { flex: 1; }
+.update-banner-btn {
+width: auto; padding: 5px 12px; margin: 0;
+font-size: 12px; background: #ff9800; color: #fff;
+}
+.update-banner-btn:hover { background: #f57c00; }
+.update-banner-close {
+width: auto; padding: 5px 8px; margin: 0;
+background: transparent; color: #856404; font-size: 12px;
+}
+.update-banner-close:hover { background: rgba(0,0,0,0.06); }
+.connection-dot {
+position: absolute; top: 10px; left: 10px;
+width: 6px; height: 6px; border-radius: 50%;
+z-index: 50; background: #9e9e9e;
+transition: background 0.3s; cursor: help;
+}
+.connection-dot.online { background: #4caf50; }
+.connection-dot.offline { background: #ff5252; animation: blink 1s infinite; }
+.connection-dot.blink-once { animation: blinkOnce 0.5s ease 4; }
+@keyframes blinkOnce {
+0%, 100% { opacity: 1; }
+50% { opacity: 0.15; }
+}
+.sleep-now-btn {
+position: absolute;
+top: 0px;
+right: 10px;
+z-index: 55;
+width: 26px;
+height: 26px;
+margin: 0;
+padding: 0;
+border: none;
+border-radius: 50%;
+background: transparent;
+font-size: 15px;
+line-height: 1;
+cursor: pointer;
+display: none;
+opacity: 0.7;
+transition: opacity 0.15s, transform 0.15s;
+}
+.sleep-now-btn:hover {
+opacity: 1;
+transform: scale(1.15);
+background: transparent;
+}
+.join-notification {
+display: none; position: fixed; top: 20px; left: 50%;
+transform: translateX(-50%);
+background: #4caf50; color: white;
+padding: 15px 30px; border-radius: 10px;
+font-size: 16px; font-weight: bold; z-index: 9998;
+box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+animation: slideDown 0.5s ease;
+}
+.join-notification.active { display: block; }
+.join-notification.nudge { background: #ff9800; }
+.join-notification.sleep-warning {
+background: #ff9800;
+animation: slideDown 0.5s ease, pulse-danger 2s infinite 0.5s;
+}
+@keyframes slideDown {
+from { transform: translate(-50%, -100%); opacity: 0; }
+to { transform: translate(-50%, 0); opacity: 1; }
+}
+.confetti-layer {
+position: fixed; inset: 0; pointer-events: none;
+z-index: 10002; overflow: hidden;
+}
+.confetti-piece {
+position: absolute; top: -14px; width: 8px; height: 13px;
+border-radius: 2px; opacity: 0.95;
+animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+from { transform: translateY(0) rotate(0deg); }
+to { transform: translateY(112vh) rotate(720deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+.confetti-piece { animation: none; display: none; }
+}
+.lobby-group-title {
+font-size: 11px; font-weight: bold; color: #667eea;
+margin: 10px 0 4px 0; padding-bottom: 3px;
+border-bottom: 1px solid #e0e0e0;
+}
+.lobby-group-title:first-child { margin-top: 0; }
+.lobby-status {
+font-size: 12px; color: #888; text-align: center;
+margin: 5px 0; font-style: italic;
+}
+.lobby-timer {
+font-size: 14px; font-weight: bold; color: #ff9800;
+text-align: center; margin: 5px 0;
+}
+.user-stats {
+font-size: 12px; color: #666; text-align: center;
+margin: -4px 0 8px 0; cursor: help;
+}
+.user-stats .stat-x { color: #667eea; font-weight: 900; font-size: 15px; }
+.user-stats .stat-o { color: #764ba2; font-weight: 900; font-size: 15px; }
+.user-stats .stat-num { font-weight: bold; color: #444; }
+.lobby-list { max-height: 250px; overflow-y: auto; margin: 5px 0; }
+.lobby-item {
+background: #f5f5f5; padding: 12px; margin: 6px 0;
+border-radius: 10px; display: flex;
+justify-content: space-between; align-items: center;
+}
+.lobby-item.my-game { background: #e8f0fe; border: 2px solid #667eea; }
+.lobby-item.finished-game { background: #f1f8e9; border: 1px solid #aed581; }
+.lobby-item .game-info { display: flex; flex-direction: column; gap: 2px; }
+.lobby-item .game-name { font-weight: bold; font-size: 14px; color: #333; }
+.lobby-item .game-label { font-size: 11px; color: #667eea; font-style: italic; }
+.lobby-item .game-status { font-size: 10px; color: #888; }
+.lobby-countdown { font-weight: bold; color: #ff9800; }
+.lobby-item button { width: auto; padding: 8px 16px; margin: 0; }
+.lobby-empty { text-align: center; padding: 20px; color: #888; font-size: 14px; }
+.user-info {
+background: #f5f5f5; padding: 10px 15px; border-radius: 10px;
+margin-bottom: 10px; display: flex;
+align-items: center; flex-shrink: 0;
+position: relative;
+}
+.user-info .user-name { flex: 1; }
+.logo-anim {
+width: 44px;
+height: 44px;
+perspective: 220px; pointer-events: none; flex-shrink: 0;
+}
+.user-info .logo-anim {
+position: absolute;
+left: 50%;
+top: 50%;
+transform: translate(-50%, -50%);
+}
+.auth-coin-wrap {
+display: flex;
+justify-content: center;
+margin: 0 0 10px 0;
+}
+.auth-coin-wrap .logo-anim {
+position: static;
+transform: none;
+width: 64px;
+height: 64px;
+perspective: 320px;
+}
+.auth-coin-wrap .logo-face { font-size: 52px; }
+.logo-rotor {
+width: 100%; height: 100%; position: relative;
+transform-style: preserve-3d;
+animation: logoSpin 4s linear infinite;
+}
+.logo-face {
+position: absolute; inset: 0;
+display: flex; align-items: center; justify-content: center;
+font-size: 36px; font-weight: 900; line-height: 1;
+text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+backface-visibility: hidden;
+-webkit-backface-visibility: hidden;
+}
+.logo-x { color: #667eea; transform: rotateY(0deg); }
+.logo-o { color: #764ba2; transform: rotateY(180deg); }
+@keyframes logoSpin {
+from { transform: rotateY(0deg); }
+to { transform: rotateY(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+.logo-rotor { animation: none; }
+}
+canvas {
+border: 2px solid #667eea; border-radius: 10px;
+display: block; margin: 0 auto; background: #fafafa;
+cursor: default; flex-shrink: 0;
+touch-action: none;
+}
+.controls {
+display: flex;
+flex-direction: row;
+flex-wrap: nowrap;
+align-items: stretch;
+gap: 6px;
+margin-top: 10px;
+flex-shrink: 0;
+overflow-x: auto;
+overflow-y: hidden;
+padding-bottom: 4px;
+scrollbar-width: thin;
+-webkit-overflow-scrolling: touch;
+}
+.controls button {
+flex: 1 0 auto;
+width: auto;
+min-width: 0;
+margin: 0;
+padding: 10px 8px;
+font-size: 12px;
+font-weight: bold;
+white-space: nowrap;
+flex-shrink: 0;
+}
+@media (max-width: 640px) {
+.controls { gap: 5px; }
+.controls button {
+padding: 9px 6px;
+font-size: 11px;
+}
+}
+#undo-btn { background: #ff9800; }
+#undo-btn:hover { background: #f57c00; }
+#nudge-btn { background: #ab47bc; }
+#nudge-btn:hover { background: #8e24aa; }
+.settings-wrapper {
+position: relative;
+flex-shrink: 0;
+margin-left: 8px;
+}
+.settings-btn {
+width: auto;
+padding: 6px 10px;
+background: transparent;
+font-size: 20px;
+color: #666;
+border: none;
+cursor: pointer;
+margin: 0;
+line-height: 1;
+border-radius: 8px;
+transition: background 0.2s;
+}
+.settings-btn:hover {
+background: #e0e0e0;
+transform: none;
+}
+.settings-menu {
+position: absolute;
+top: calc(100% + 6px);
+right: 0;
+background: white;
+border-radius: 12px;
+box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+padding: 8px;
+min-width: 220px;
+z-index: 10004;
+display: flex;
+flex-direction: column;
+gap: 6px;
+}
+.settings-menu-item {
+width: 100%;
+padding: 10px 14px;
+background: #f5f5f5;
+color: #333;
+border: none;
+border-radius: 8px;
+font-size: 14px;
+font-weight: bold;
+cursor: pointer;
+text-align: left;
+margin: 0;
+transition: background 0.15s;
+}
+.settings-menu-item:hover {
+background: #e0e0e0;
+transform: none;
+}
+.settings-menu-item.danger {
+background: #ffebee;
+color: #c62828;
+}
+.settings-menu-item.danger:hover {
+background: #ffcdd2;
+}
+.sleep-saver {
+display: none;
+position: fixed;
+inset: 0;
+background-color: #000000;
+background-image:
+linear-gradient(rgba(255,255,255,0.10) 1px, transparent 1px),
+linear-gradient(90deg, rgba(255,255,255,0.10) 1px, transparent 1px);
+background-size: 48px 48px;
+z-index: 10010;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+cursor: pointer;
+user-select: none;
+}
+.sleep-saver.active { display: flex; }
+.sleep-coin {
+width: 180px;
+height: 180px;
+perspective: 900px;
+pointer-events: none;
+}
+.sleep-rotor {
+width: 100%;
+height: 100%;
+position: relative;
+transform-style: preserve-3d;
+animation: logoSpin 4s linear infinite;
+}
+.sleep-face {
+position: absolute; inset: 0;
+display: flex; align-items: center; justify-content: center;
+font-size: 140px; font-weight: 900; line-height: 1;
+text-shadow: 0 4px 24px rgba(102, 126, 234, 0.35);
+backface-visibility: hidden;
+-webkit-backface-visibility: hidden;
+}
+.sleep-face-x { color: #667eea; transform: rotateY(0deg); }
+.sleep-face-o { color: #764ba2; transform: rotateY(180deg); }
+@media (prefers-reduced-motion: reduce) {
+.sleep-rotor { animation: none; }
+}
+.game-header {
+display: flex; justify-content: space-between; align-items: center;
+padding: 8px 15px; background: #f5f5f5;
+border-radius: 10px; margin-bottom: 8px; flex-shrink: 0;
+}
+.game-header .player-info { display: flex; align-items: center; gap: 12px; }
+.game-header .player-symbol {
+font-size: 36px; font-weight: 900; line-height: 1;
+min-width: 40px; text-align: center;
+text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.game-header .player-symbol.symbol-pop { animation: symbolPop 0.6s ease; }
+@keyframes symbolPop {
+0% { transform: scale(2.2); opacity: 0; }
+60% { transform: scale(0.9); opacity: 1; }
+100% { transform: scale(1); opacity: 1; }
+}
+.game-header .player-symbol.symbol-x { color: #667eea; }
+.game-header .player-symbol.symbol-o { color: #764ba2; }
+.game-header .player-name { font-size: 15px; font-weight: bold; color: #333; }
+.player-line {
+display: flex;
+align-items: center;
+gap: 6px;
+white-space: nowrap;
+}
+.player-line .stats-inline {
+font-size: 11px;
+color: #777;
+font-weight: normal;
+}
+.opponent-line {
+margin-top: 4px;
+font-size: 12px;
+color: #888;
+}
+#opponent-name {
+font-weight: bold;
+color: #444;
+cursor: help;
+}
+.opponent-status {
+display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+flex-shrink: 0;
+cursor: help;
+}
+.opponent-status.online { background: #4caf50; }
+.opponent-status.offline { background: #ff5252; animation: blink 1s infinite; }
+.opponent-status.reconnecting { background: #ffc107; animation: blink 0.5s infinite; }
+.opponent-status.paused-dot { background: #9e9e9e; }
+@keyframes blink {
+0%, 100% { opacity: 1; }
+50% { opacity: 0.3; }
+}
+.turn-indicator {
+font-weight: bold; padding: 5px 10px; border-radius: 6px; font-size: 13px;
+flex-shrink: 0;
+}
+.turn-indicator.my-turn { background: #4caf50; color: white; }
+.turn-indicator.opponent-turn { background: #ff9800; color: white; }
+.turn-indicator.paused-turn { background: #9e9e9e; color: white; }
+.room-header {
+display: flex; justify-content: center; align-items: center;
+gap: 15px; padding: 8px 15px;
+background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+border: 1px solid rgba(102, 126, 234, 0.2);
+border-radius: 10px; margin-bottom: 8px; flex-shrink: 0;
+}
+.room-header .room-name {
+font-size: 14px; font-weight: bold; color: #667eea;
+display: flex; align-items: center; gap: 6px;
+}
+.room-header .room-divider { color: #ccc; font-size: 14px; }
+.room-header .room-creator {
+font-size: 13px; color: #666;
+display: flex; align-items: center; gap: 6px;
+}
+.timer-section {
+padding: 8px 15px; background: #f5f5f5;
+border-radius: 10px; margin-bottom: 8px; flex-shrink: 0;
+}
+.timer-row {
+display: flex; align-items: center; justify-content: space-between;
+margin-bottom: 5px; font-size: 12px;
+}
+.timer-row .label { color: #666; font-weight: 500; }
+.timer-row .value { font-weight: bold; color: #333; }
+.progress-container {
+width: 100%; height: 20px; background: #e0e0e0;
+border-radius: 10px; overflow: hidden; position: relative;
+}
+.progress-bar {
+height: 100%; border-radius: 10px;
+transition: width 1s linear, background-color 0.5s ease;
+display: flex; align-items: center; justify-content: flex-end; padding-right: 8px;
+}
+.progress-bar .progress-text {
+font-size: 11px; font-weight: bold; color: white;
+text-shadow: 0 1px 2px rgba(0,0,0,0.3); white-space: nowrap;
+}
+.progress-bar.state-normal { background: #4caf50; }
+.progress-bar.state-warning { background: #ff9800; }
+.progress-bar.state-danger { background: #ff5252; animation: pulse-danger 1s infinite; }
+.progress-bar.state-paused { background: #9e9e9e; }
+@keyframes pulse-danger {
+0%, 100% { opacity: 1; }
+50% { opacity: 0.7; }
+}
+.disconnect-banner {
+display: none; padding: 10px; background: #fff3cd;
+border: 2px solid #ff9800; border-radius: 10px;
+margin-bottom: 8px; text-align: center; flex-shrink: 0;
+}
+.disconnect-banner.active { display: block; animation: pulse-danger 2s infinite; }
+.disconnect-banner .banner-text { font-weight: bold; color: #856404; margin-bottom: 5px; font-size: 13px; }
+.disconnect-banner .banner-timer { font-size: 16px; font-weight: bold; color: #ff5252; }
+.disconnect-banner button { margin-top: 8px; padding: 6px 16px; font-size: 13px; }
+.pause-request-banner {
+display: none; padding: 10px; background: #e3f2fd;
+border: 2px solid #2196f3; border-radius: 10px;
+margin-bottom: 8px; text-align: center; flex-shrink: 0;
+}
+.pause-request-banner.active { display: block; }
+.pause-request-banner .banner-text { font-weight: bold; color: #0d47a1; margin-bottom: 6px; font-size: 13px; }
+.pause-request-banner button {
+display: inline-block; width: auto; margin: 0 4px;
+padding: 6px 16px; font-size: 13px;
+}
+.resume-notice-banner {
+display: none; padding: 10px; background: #e8f5e9;
+border: 2px solid #4caf50; border-radius: 10px;
+margin-bottom: 8px; text-align: center; flex-shrink: 0;
+}
+.resume-notice-banner.active { display: block; }
+.resume-notice-banner .banner-text { font-weight: bold; color: #1b5e20; font-size: 13px; }
+.pause-banner {
+display: none; padding: 12px; background: #eceff1;
+border: 2px solid #9e9e9e; border-radius: 10px;
+margin-bottom: 8px; text-align: center; flex-shrink: 0;
+}
+.pause-banner.active { display: block; }
+.pause-banner .pause-title {
+font-size: 16px; font-weight: bold; color: #455a64; margin-bottom: 4px; }
+.pause-banner .pause-limit { font-size: 12px; color: #607d8b; margin-bottom: 4px; }
+.pause-banner .pause-limit.warn { color: #ff5252; font-weight: bold; }
+.pause-banner .pause-state {
+font-size: 12px; color: #455a64; font-style: italic; margin-bottom: 6px;
+}
+.pause-banner button {
+display: inline-block; width: auto; margin: 0 4px;
+padding: 8px 18px; font-size: 13px;
+}
+.canvas-wrapper {
+flex: 1; display: flex; justify-content: center; align-items: center;
+padding: 10px; min-height: 0; overflow: hidden;
+}
+.help { font-size: 11px; color: #888; text-align: center; margin-top: 5px; flex-shrink: 0; line-height: 1.6; }
+.version {
+text-align: center; font-size: 11px; color: #999;
+margin-top: 10px; padding-top: 8px;
+border-top: 1px solid #e0e0e0; flex-shrink: 0;
+}
+.debug-indicator {
+display: none; position: fixed; top: 15px; right: 15px;
+background: rgba(243, 139, 168, 0.95); color: #1e1e2e;
+padding: 8px 15px; border-radius: 20px;
+font-size: 13px; font-weight: bold; z-index: 9999;
+box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+.debug-indicator.active { display: block; }
+.debug-overlay {
+display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+background: rgba(0,0,0,0.5); z-index: 10000;
+justify-content: center; align-items: center;
+}
+.debug-overlay.active { display: flex; }
+.debug-panel {
+background: #1e1e2e; color: #cdd6f4;
+border-radius: 15px; padding: 25px;
+width: 400px; max-width: 90vw;
+box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+border: 2px solid #45475a;
+}
+.debug-panel h2 { color: #f38ba8; text-align: center; margin-bottom: 20px; font-size: 18px; }
+.debug-option {
+display: flex; justify-content: space-between; align-items: center;
+padding: 12px; background: #313244; border-radius: 8px;
+margin-bottom: 10px; cursor: pointer; user-select: none;
+}
+.debug-option label { font-size: 14px; cursor: pointer; }
+.debug-switch { position: relative; width: 44px; height: 24px; cursor: pointer; }
+.debug-switch input { opacity: 0; width: 0; height: 0; }
+.debug-slider {
+position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+background-color: #45475a; transition: 0.3s; border-radius: 24px;
+}
+.debug-slider:before {
+position: absolute; content: ""; height: 18px; width: 18px;
+left: 3px; bottom: 3px; background-color: #cdd6f4;
+transition: 0.3s; border-radius: 50%;
+}
+.debug-switch input:checked + .debug-slider { background-color: #a6e3a1; }
+.debug-switch input:checked + .debug-slider:before { transform: translateX(20px); }
+.debug-reset-btn {
+width: 100%; padding: 10px; background: #f38ba8; color: #1e1e2e;
+border: none; border-radius: 8px; font-size: 14px; font-weight: bold;
+cursor: pointer; margin-top: 10px;
+}
+.debug-reset-btn:hover { background: #eba0ac; }
+.debug-hint { text-align: center; font-size: 11px; color: #6c7086; margin-top: 12px; }
+.debug-close-btn {
+width: 100%; padding: 10px; background: #45475a; color: #cdd6f4;
+border: none; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 8px;
+}
+.debug-close-btn:hover { background: #585b70; }
+.result-overlay, .confirm-overlay, .delete-account-overlay {
+display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+background: rgba(0,0,0,0.7); z-index: 10001;
+justify-content: center; align-items: center;
+}
+.result-overlay.active, .confirm-overlay.active, .delete-account-overlay.active { display: flex; }
+.result-modal, .confirm-modal, .delete-account-modal {
+background: white; border-radius: 20px; padding: 35px;
+max-width: 400px; width: 90%; text-align: center;
+box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.delete-account-modal { max-width: 450px; }
+.delete-account-modal h3 { color: #ff5252; margin-bottom: 15px; font-size: 20px; }
+.delete-account-modal .warning-text {
+color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 20px;
+}
+.delete-account-modal .warning-list {
+text-align: left; margin: 15px 0; padding-left: 20px;
+color: #555; font-size: 13px;
+}
+.delete-account-modal .warning-list li { margin: 8px 0; }
+.delete-account-modal input[type="password"] {
+width: 100%; padding: 12px; margin: 10px 0;
+border: 2px solid #e0e0e0; border-radius: 10px; font-size: 15px;
+}
+.delete-account-modal input[type="password"]:focus {
+outline: none; border-color: #ff5252;
+}
+.delete-account-modal .modal-error {
+display: none; padding: 10px; background: #ffebee; color: #c62828;
+border-radius: 8px; font-size: 13px; margin-bottom: 12px; font-weight: bold;
+}
+.delete-account-modal .modal-hint {
+font-size: 12px; color: #999; margin-bottom: 8px;
+}
+.result-message { font-size: 18px; margin-bottom: 25px; line-height: 1.6; white-space: pre-line; }
+.confirm-message { font-size: 16px; margin-bottom: 25px; line-height: 1.6; }
+.result-btn {
+padding: 12px 40px; background: #667eea; color: white;
+border: none; border-radius: 10px;
+font-size: 16px; font-weight: bold; cursor: pointer;
+}
+.result-btn:hover { background: #5568d3; }
+.confirm-buttons, .delete-account-buttons { display: flex; gap: 10px; }
+.confirm-buttons button, .delete-account-buttons button {
+flex: 1; padding: 12px; margin: 0;
+border: none; border-radius: 10px;
+font-size: 15px; font-weight: bold; cursor: pointer;
+}
+.ban-overlay {
+display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+background: rgba(0,0,0,0.85); z-index: 10020;
+justify-content: center; align-items: center;
+}
+.ban-overlay.active { display: flex; }
+.ban-modal {
+background: white; border-radius: 20px; padding: 35px;
+max-width: 420px; width: 90%; text-align: center;
+box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.ban-modal h3 { color: #ff5252; margin-bottom: 15px; font-size: 20px; }
+.ban-modal .ban-text { color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+</style>
+</head>
+<body>
+<div class="join-notification" id="join-notification"></div>
+<div class="debug-indicator" id="debug-indicator">&#128295; Отладка</div>
+<div class="debug-overlay" id="debug-overlay">
+<div class="debug-panel">
+<h2>&#128295; Режим отладки</h2>
+<div class="debug-option" data-checkbox="dbg-timer">
+<label>&#9201;&#65039; Таймер хода выключен</label>
+<div class="debug-switch">
+<input type="checkbox" id="dbg-timer" onchange="applyDebugSettings()">
+<span class="debug-slider"></span>
+</div>
+</div>
+<div class="debug-option" data-checkbox="dbg-reveal">
+<label>&#128065;&#65039; Показать всё поле</label>
+<div class="debug-switch">
+<input type="checkbox" id="dbg-reveal" onchange="applyDebugSettings()">
+<span class="debug-slider"></span>
+</div>
+</div>
+<button class="debug-reset-btn" onclick="resetDebugSettings()">&#128260; Сброс всех режимов</button>
+<button class="debug-close-btn" onclick="closeDebugPanel()">Закрыть окно (режимы сохранятся)</button>
+<div class="debug-hint">Ctrl+Alt+D — показать/скрыть окно • «Сброс» — выключить все режимы</div>
+</div>
+</div>
+<div class="result-overlay" id="result-overlay">
+<div class="result-modal">
+<div class="result-message" id="result-message"></div>
+<button class="result-btn" onclick="closeResultModal()">ОК</button>
+</div>
+</div>
+<div class="confirm-overlay" id="confirm-overlay">
+<div class="confirm-modal">
+<div class="confirm-message">Вы уверены, что хотите сдаться? Это засчитает поражение.</div>
+<div class="confirm-buttons">
+<button class="danger" onclick="confirmSurrender()">Да, сдаться</button>
+<button class="secondary" onclick="closeConfirmModal()">Отмена</button>
+</div>
+</div>
+</div>
+<div class="delete-account-overlay" id="delete-account-overlay">
+<div class="delete-account-modal">
+<h3>&#9888;&#65039; Удаление аккаунта</h3>
+<div class="warning-text">
+Это действие <strong>необратимо</strong>. Будут удалены:
+</div>
+<ul class="warning-list">
+<li>Ваш профиль и статистика</li>
+<li>Все ваши активные игры (будут отменены)</li>
+<li>Запись в системе входа (вход станет невозможен)</li>
+</ul>
+<div class="warning-text">
+Аккаунт <strong id="delete-account-username"></strong> будет удалён навсегда.
+</div>
+<div class="modal-hint">&#128274; Введите пароль для подтверждения:</div>
+<input type="password" id="delete-account-password" placeholder="Пароль аккаунта" autocomplete="current-password">
+<div class="modal-error" id="delete-account-error"></div>
+<div class="delete-account-buttons">
+<button class="danger" id="delete-account-confirm-btn" onclick="confirmDeleteAccount()">Да, удалить навсегда</button>
+<button class="secondary" onclick="closeDeleteAccountModal()">Отмена</button>
+</div>
+</div>
+</div>
+<div class="ban-overlay" id="ban-overlay">
+<div class="ban-modal">
+<h3>&#9888;&#65039; Аккаунт заблокирован</h3>
+<div class="ban-text">
+Ваш аккаунт заблокирован администратором.<br>
+Если вы считаете, что это ошибка, свяжитесь с администратором.
+</div>
+<button class="danger" id="ban-logout-btn" type="button">Выйти</button>
+</div>
+</div>
+<div class="sleep-saver" id="sleep-saver">
+<div class="sleep-coin" aria-hidden="true">
+<div class="sleep-rotor">
+<span class="sleep-face sleep-face-x">X</span>
+<span class="sleep-face sleep-face-o">O</span>
+</div>
+</div>
+</div>
+<div class="container compact-mode" id="main-container">
+<div class="connection-dot" id="connection-dot" title="Соединение: установка..."></div>
+<button class="sleep-now-btn" id="sleep-now-btn" title="Режим сна" onclick="enterSleepNow()">&#128164;</button>
+<div id="auth-screen" class="screen active">
+<div class="scrollable">
+<div class="auth-coin-wrap" aria-hidden="true">
+<div class="logo-anim">
+<div class="logo-rotor">
+<span class="logo-face logo-x">X</span>
+<span class="logo-face logo-o">O</span>
+</div>
+</div>
+</div>
+<h2>Вход / Регистрация</h2>
+<div id="auth-error" class="error"></div>
+<div id="auth-success" class="success"></div>
+<form id="auth-form" novalidate>
+<input type="text" id="username" placeholder="Имя пользователя" autocomplete="username" maxlength="8" autofocus>
+<div class="auth-hint">Новые имена: 3–8 символов, латиница и цифры: Abcd1234</div>
+<div class="password-wrapper">
+<input type="password" id="password" placeholder="Пароль" autocomplete="current-password">
+<button type="button" class="eye-btn" id="eye-btn" tabindex="-1" onclick="togglePasswordVisibility()" title="Показать пароль">&#128065;&#65039;</button>
+</div>
+<label class="consent-wrap">
+<input type="checkbox" id="consent-check">
+<span class="consent-text">Я согласен с <a href="https://xo5line.web.app/privacy.html" target="_blank" rel="noopener">политикой конфиденциальности</a> и <a href="https://xo5line.web.app/terms.html" target="_blank" rel="noopener">пользовательским соглашением</a> (обязательно для регистрации)</span>
+</label>
+<button type="submit">Войти</button>
+<button type="button" onclick="register()" class="secondary">Зарегистрироваться</button>
+</form>
+</div>
+<div class="version" id="version-display"></div>
+</div>
+<div id="lobby-screen" class="screen">
+<div class="user-info">
+<span class="user-name">&#128100; <strong id="user-display"></strong></span>
+<div class="logo-anim" aria-hidden="true">
+<div class="logo-rotor">
+<span class="logo-face logo-x">X</span>
+<span class="logo-face logo-o">O</span>
+</div>
+</div>
+<div class="settings-wrapper">
+<button class="settings-btn" onclick="toggleSettingsMenu(event)" title="Настройки">&#9881;&#65039;</button>
+<div class="settings-menu" id="settings-menu" style="display: none;">
+<button class="settings-menu-item danger" onclick="showDeleteAccountModal(); closeSettingsMenu();">&#128465;&#65039; Удалить аккаунт</button>
+<button class="settings-menu-item" onclick="logout(); closeSettingsMenu();">&#128682; Выйти</button>
+</div>
+</div>
+</div>
+<div class="user-stats" id="user-stats"></div>
+<h1>&#127918; Лобби</h1>
+<div class="update-banner" id="update-banner">
+<span class="update-banner-text" id="update-banner-text"></span>
+<button class="update-banner-btn" onclick="reloadForUpdate()">&#128260; Обновить</button>
+<button class="update-banner-close" onclick="dismissUpdateBanner()" title="Скрыть до следующей загрузки">&#10005;</button>
+</div>
+<div id="lobby-error" class="error"></div>
+<div class="scrollable">
+<button id="create-game-btn" onclick="createGame()">&#10133; Создать игру</button>
+<div class="lobby-status" id="lobby-status">Главное лобби</div>
+<div class="lobby-timer" id="lobby-timer" style="display: none;"></div>
+<div id="games-list" class="lobby-list">
+<div class="lobby-empty">Загрузка...</div>
+</div>
+</div>
+<div class="version" id="version-display-lobby"></div>
+</div>
+<div id="game-screen" class="screen">
+<div class="game-header">
+<div class="player-info">
+<div id="player-symbol" class="player-symbol">X</div>
+<div>
+<div class="player-line">
+<span class="player-name" id="player-name">Игрок</span>
+<span class="stats-inline" id="my-stats-inline"></span>
+</div>
+<div class="player-line opponent-line">
+<span class="opponent-status online" id="opponent-status-dot" title="Соперник в сети"></span>
+<span id="opponent-name" title="Ваш соперник">...</span>
+<span class="stats-inline" id="opponent-stats-inline"></span>
+</div>
+</div>
+</div>
+<div id="turn-indicator" class="turn-indicator"></div>
+</div>
+<div class="room-header" id="room-header">
+<div class="room-name">
+<span>&#127968;&#65039;</span>
+<span id="room-name-text">...</span>
+</div>
+<div class="room-divider">•</div>
+<div class="room-creator">
+<span>&#128100;</span>
+<span id="room-creator-text">...</span>
+</div>
+</div>
+<div class="timer-section">
+<div class="timer-row">
+<span class="label">&#9201;&#65039; Партия:</span>
+<span class="value" id="game-timer">0:00</span>
+</div>
+<div class="timer-row">
+<span class="label">&#127919; Ход:</span>
+<span class="value" id="turn-timer-text">20:00</span>
+</div>
+<div class="progress-container">
+<div id="turn-progress-bar" class="progress-bar state-normal" style="width: 100%;">
+<span class="progress-text" id="progress-text">20:00</span>
+</div>
+</div>
+</div>
+<div class="disconnect-banner" id="disconnect-banner">
+<div class="banner-text">&#9888;&#65039; Соперник переподключается...</div>
+<div class="banner-timer" id="disconnect-timer">20:00</div>
+<button onclick="endGameDueDisconnect()" class="danger">Завершить игру (без результата)</button>
+</div>
+<div class="pause-request-banner" id="pause-request-banner">
+<div class="banner-text" id="pause-request-text"></div>
+<div id="pause-request-buttons"></div>
+</div>
+<div class="resume-notice-banner" id="resume-notice-banner">
+<div class="banner-text" id="resume-notice-text"></div>
+</div>
+<div class="pause-banner" id="pause-banner">
+<div class="pause-title">&#9208;&#65039; Игра на паузе</div>
+<div class="pause-limit" id="pause-limit-text"></div>
+<div class="pause-state" id="pause-state-text"></div>
+<div id="pause-buttons"></div>
+</div>
+<div class="canvas-wrapper" id="canvas-wrapper">
+<canvas id="gameCanvas"></canvas>
+</div>
+<div class="help">&#128433;&#65039; ЛКМ — ход | &#128433;&#65039; ПКМ/СКМ/удержание — перемещение поля | &#9000;&#65039; WASD/стрелки — сдвиг поля на 1 клетку | Enter — ход в клетку прицела | Backspace — отмена хода (3 сек, 1 раз за свой ход) | Колесо / +/− — масштаб | Пробел — центр поля</div>
+<div class="controls">
+<button id="surrender-btn" onclick="surrender()">&#127987;&#65039; Сдаться</button>
+<button id="pause-btn" onclick="requestPause()">&#9208;&#65039; Пауза</button>
+<button id="undo-btn" onclick="undoMove()" style="display: none;">&#8617;&#65039; Отменить ход</button>
+<button id="nudge-btn" onclick="nudgeOpponent()" style="display: none;">&#129462; Пнуть</button>
+<button onclick="resetView()">&#127919; Центр</button>
+<button onclick="zoomIn()">&#128269;+</button>
+<button onclick="zoomOut()">&#128269;&#8722;</button>
+</div>
+<div class="version" id="version-display-game"></div>
+</div>
+</div>
+<script type="module">
+// ============================================================
+// СОГЛАШЕНИЕ: все эмодзи в JS записаны unicode-экранированиями
+// (\u{...}), а в HTML — сущностями (&#...;), чтобы гарантированно
+// переживать копирование файла между сообщениями и редакторами.
+// ============================================================
+const VERSION = '1.29.0';
+const AUTHORS = 'Ni.Coder & Qwen';
+function displayVersion() {
+const versionText = `v${VERSION} | ${AUTHORS}`;
+document.querySelectorAll('.version').forEach(el => {
+el.textContent = versionText;
+});
+}
+displayVersion();
+const TURN_WARNING_TIME = 15 * 60 * 1000;
+const TURN_AUTO_END_TIME = 20 * 60 * 1000;
+const CAMERA_BOUNDARY_PADDING = 3;
+const WIN_LINE_ANIMATION_DURATION = 1.0;
+const WIN_MODAL_DELAY = (WIN_LINE_ANIMATION_DURATION + 1) * 1000;
+const ACTIVITY_UPDATE_INTERVAL = 45000;
+const OPPONENT_CHECK_INTERVAL = 5000;
+const OPPONENT_OFFLINE_THRESHOLD = 135000;
+const RECONNECT_TIMEOUT = 20 * 60 * 1000;
+const DEBUG_REVEAL_RANGE = 50;
+const WAITING_TIMEOUT = 5 * 60 * 1000;
+const WAITING_CHECK_INTERVAL = 1000;
+const PLAYING_INACTIVE_TIMEOUT = 30 * 60 * 1000;
+const FINISHED_GAME_TIMEOUT = 5 * 60 * 1000;
+const JOIN_NOTIFICATION_DURATION = 3000;
+const CREATOR_HEARTBEAT_INTERVAL = 30000;
+const LOBBY_CLEANUP_INTERVAL = 15000;
+const LOBBY_COUNTDOWN_INTERVAL = 1000;
+const SESSION_HEARTBEAT_INTERVAL = 60000;
+const SESSION_LEASE_MS = 240000;
+const SESSION_RELEASE_GRACE_MS = 20000;
+const BLOCKED_RETRY_INTERVAL = 10000;
+const MAX_ACTIVE_GAMES = 3;
+const PAUSE_MAX_MS = 72 * 60 * 60 * 1000;
+const PAUSE_WARN_MS = 24 * 60 * 60 * 1000;
+const CONNECTION_CHECK_INTERVAL = 5000;
+const CONNECTION_PING_INTERVAL = 45000;
+const CONNECTION_TIMEOUT = 180000;
+const LONG_PRESS_MS = 300;
+const DRAG_THRESHOLD_PX = 5;
+const CROSSHAIR_LERP = 0.35;
+const CROSSHAIR_SNAP_DELAY_MS = 250;
+const UNDO_WINDOW_MS = 3000;
+const ROOM_NUMBER_MAX = 9999;
+const NUDGE_COOLDOWN_MS = 30000;
+const NUDGE_PONG_TIMEOUT = 10000;
+const NUDGE_STALE_NOW_MS = 100000;
+const MOVE_REMINDER_MS = 60000;
+const FORCE_CLEAR_FRESH_MS = 90000;
+const CONFETTI_COUNT = 90;
+const CONFETTI_LIFETIME_MS = 5000;
+const LOTTERY_SLOW_END = 500;
+const LOTTERY_FAST_END = 2000;
+const LOTTERY_BRAKE_END = 3000;
+const LOTTERY_REVEAL_END = 4200;
+const LOTTERY_FADE_END = 4700;
+const LOTTERY_OMEGA_SLOW = 0.25 * 2 * Math.PI / 1000;
+const LOTTERY_OMEGA_FAST = 3 * 2 * Math.PI / 1000;
+const NUDGE_BIG_EVERY = 3;
+const NUDGE_MEGA_EVERY = 20;
+const MAX_CATALOG_ROOMS = 60;
+const ORPHAN_CHECK_INTERVAL = 60000;
+const ORPHAN_HEAL_THRESHOLD = 120000;
+const IDLE_SLEEP_TIMEOUT = 5 * 60 * 1000;
+const IDLE_WARN_BEFORE = 30 * 1000;
+const IDLE_CHECK_INTERVAL = 5000;
+const NAME_MAX_REGISTER = 8;
+const NAME_MAX_LOGIN = 20;
+const EMAIL_DOMAIN = '@xo5line.local';
+// НОВОЕ В 1.29.0: маяк версий сайта (S.2). Загружается обычным
+// тегом script — работает и из локальной копии без CORS.
+const VERSION_URL = 'https://xo5line.web.app/version.js';
+const UPDATE_CHECK_TIMEOUT_MS = 5000;
+const OTHER = { X: 'O', O: 'X' };
+const LOBBY_MAIN = 'Главное лобби';
+const LOBBY_WAITING = 'Лобби ожидания';
+const STATUS_WAITING = 'waiting';
+const STATUS_PLAYING = 'playing';
+const STATUS_PAUSED = 'paused';
+const STATUS_COMPLETED = 'completed';
+const STATUS_CANCELLED = 'cancelled';
+const LOOSER_PHRASES = [
+'Хорошая борьба! В следующий раз повезёт.',
+'Соперник сегодня чуть точнее. Ты всё равно молодец!',
+'Не сдавайся — твоя победа уже близко.',
+'Отличная партия! Реванш будет за тобой.',
+'Каждая партия делает тебя сильнее.'
+];
+const CANCEL_PHRASES = [
+'Без результата — но всё впереди!',
+'Ничего страшного, начнём новую партию.',
+'Игра не засчитана. Следующая будет результативной!'
+];
+const CONFETTI_COLORS = ['#667eea', '#764ba2', '#4caf50', '#ff9800', '#ff5252', '#2196f3', '#ffd700'];
+function escapeHtml(value) {
+if (value === null || value === undefined) return '';
+return String(value).replace(/[&<>"']/g, c => ({
+'&': '&amp;',
+'<': '&lt;',
+'>': '&gt;',
+'"': '&quot;',
+"'": '&#39;'
+}[c]));
+}
+function toNum(v) {
+const n = Number(v);
+return Number.isFinite(n) ? n : 0;
+}
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import {
+getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+signOut, updateProfile, onAuthStateChanged,
+browserLocalPersistence, setPersistence,
+deleteUser, reauthenticateWithCredential, EmailAuthProvider
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import {
+getFirestore, collection, doc, getDoc, getDocs, updateDoc, deleteDoc,
+onSnapshot, query, where, setDoc, runTransaction, increment
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+const firebaseConfig = {
+apiKey: "AIzaSyBErGlVe3j1IIPYiBGz2TAJxr96uV1Nff0",
+authDomain: "xo5line.firebaseapp.com",
+projectId: "xo5line",
+storageBucket: "xo5line.firebasestorage.app",
+messagingSenderId: "465510523600",
+appId: "1:465510523600:web:ad8c4b628d32ea3dc2f4d5"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+try {
+await setPersistence(auth, browserLocalPersistence);
+console.log('%c[OK] Сессия будет сохраняться после закрытия браузера', 'color: #4caf50; font-weight: bold;');
+} catch (error) {
+console.log('[WARN] Не удалось установить персистентность:', error);
+}
+let lobbyConfig = { staleGameDays: 5 };
+async function loadLobbyConfig() {
+try {
+const snap = await getDoc(doc(db, 'config', 'app'));
+if (snap.exists()) {
+const d = snap.data();
+const j = d.janitor || {};
+const days = Number(j.staleGameDays);
+if (Number.isFinite(days) && days >= 1 && days <= 365) {
+lobbyConfig.staleGameDays = days;
+}
+}
+} catch (e) {
+console.warn('[CONFIG] config/app недоступен, порог по умолчанию:', e && e.code ? e.code : e);
+}
+}
+function lastMoveAt(g) {
+return g.turnStartTime || g.gameStartTime || g.createdAt || 0;
+}
+function isStaleGame(g, now) {
+const anchor = lastMoveAt(g);
+return anchor > 0 && (now - anchor) > lobbyConfig.staleGameDays * 86400000;
+}
+// НОВОЕ В 1.29.0: маяк версий. Сравнение semver: remote новее local?
+function isNewerVersion(remote, local) {
+const pa = String(remote).split('.').map(Number);
+const pb = String(local).split('.').map(Number);
+for (let i = 0; i < 3; i++) {
+const a = pa[i] || 0;
+const b = pb[i] || 0;
+if (a > b) return true;
+if (a < b) return false;
+}
+return false;
+}
+function showUpdateBanner(remoteVersion) {
+const banner = document.getElementById('update-banner');
+if (!banner || banner.classList.contains('active')) return;
+const text = document.getElementById('update-banner-text');
+if (text) text.textContent = `\u{1F514} Доступна новая версия игры: v${remoteVersion}. Нажмите «Обновить» или Ctrl+F5.`;
+banner.classList.add('active');
+}
+window.dismissUpdateBanner = function() {
+const banner = document.getElementById('update-banner');
+if (banner) banner.classList.remove('active');
+};
+window.reloadForUpdate = function() {
+location.reload();
+};
+function checkForUpdates() {
+return new Promise((resolve) => {
+let done = false;
+const s = document.createElement('script');
+const timer = setTimeout(() => finish(false), UPDATE_CHECK_TIMEOUT_MS);
+function finish(ok) {
+if (done) return;
+done = true;
+clearTimeout(timer);
+s.onload = null;
+s.onerror = null;
+if (s.parentNode) s.parentNode.removeChild(s);
+if (ok) {
+const remote = window.XO5_SITE_VERSION && window.XO5_SITE_VERSION.game;
+if (remote && isNewerVersion(remote, VERSION)) {
+showUpdateBanner(remote);
+}
+}
+resolve(ok);
+}
+s.src = VERSION_URL + '?t=' + Date.now();
+s.async = true;
+s.onload = () => finish(true);
+s.onerror = () => finish(false);
+document.head.appendChild(s);
+});
+}
+function getBrowserId() {
+try {
+let id = localStorage.getItem('ttt5BrowserSessionId');
+if (!id) {
+id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+localStorage.setItem('ttt5BrowserSessionId', id);
+}
+return id;
+} catch (e) {
+return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+}
+function getTabId() {
+try {
+let id = sessionStorage.getItem('ttt5TabId');
+if (!id) {
+id = Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+sessionStorage.setItem('ttt5TabId', id);
+}
+return id;
+} catch (e) {
+return Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+}
+}
+const BROWSER_ID = getBrowserId();
+const TAB_ID = getTabId();
+const SESSION_ID = BROWSER_ID + ':' + TAB_ID;
+let currentUser = null;
+let currentGame = null;
+let gameListener = null;
+let activityListener = null;
+let gamesListener = null;
+let lastKnownMoveCount = 0;
+let timerInterval = null;
+let activityInterval = null;
+let opponentCheckInterval = null;
+let sessionHeartbeatInterval = null;
+let opponentDisconnected = false;
+let disconnectStartTime = null;
+let debugPanelOpen = false;
+let gameEndHandled = false;
+let myCreatedGameId = null;
+let myCreatedGameListener = null;
+let waitingTimerInterval = null;
+let waitingStartTime = null;
+let globalAudioContext = null;
+let myActiveGameId = null;
+let creatorHeartbeatInterval = null;
+let myCreatedSlot = null;
+let lastLobbySnapshot = [];
+let lobbyCleanupInterval = null;
+let lobbyCountdownInterval = null;
+let lobbyListDirty = true;
+let lastOppResumeFlag = false;
+let createInProgress = false;
+let appEntered = false;
+let pendingUser = null;
+let blockCheckInterval = null;
+let lastConnectionOk = 0;
+let connectionError = false;
+let connectionMonitorInterval = null;
+let connectionPingInterval = null;
+let lastDotState = '';
+let mousePixel = null;
+let hoverActive = false;
+let mouseDownTime = 0;
+let mouseDownPos = { x: 0, y: 0 };
+let mouseDownButton = 0;
+let draggedFlag = false;
+let holdTimer = null;
+let holdActive = false;
+let crosshairX = null;
+let crosshairY = null;
+let lastMouseAt = 0;
+let renderErrorLogged = false;
+let canvasListenersAttached = false;
+let lastCursorStyle = '';
+let lastNudgeUi = '';
+let optimisticMove = null;
+let moveInFlightPromise = null;
+let undoInfo = null;
+let undoHideTimer = null;
+let undoLabelTimer = null;
+let undoUsedThisCycle = false;
+let nudgeCooldownUntil = 0;
+let nudgeProbe = null;
+let nudgeProbeTimer = null;
+let lastNudgeSeenAt = 0;
+let lastPongedAt = 0;
+let lastReminderTurn = 0;
+let forcedDisconnect = false;
+let lottery = null;
+let lotteryRequested = false;
+let lotteryRevealed = false;
+let lotteryRevealTimer = null;
+let accountDeletionInProgress = false;
+let rebuildInProgress = false;
+let banListener = null;
+let banKickActive = false;
+let notifTimer = null;
+let lobbyPausedByVisibility = false;
+let orphanCheckInterval = null;
+const orphanCheckingIds = new Set();
+let lastUserActivityAt = Date.now();
+let idleWarningShown = false;
+let sleepMode = false;
+let idleCheckInterval = null;
+const CELL_SIZE = 14;
+const INITIAL_GRID_SIZE = 10;
+const REVEAL_RADIUS = 5;
+const MIN_ZOOM = 0.3;
+const MAX_ZOOM = 4;
+let realRevealedSet = new Set();
+let gameState = {
+moves: {}, revealed: new Set(), currentTurn: null,
+playerX: null, playerO: null, lastMove: null,
+gameStartTime: null, turnStartTime: null,
+winningCells: null, winTime: null,
+playerXLastActivity: null, playerOLastActivity: null,
+pausedAt: null,
+turnRemainingFrozen: null,
+pausedTotalMs: 0,
+pauseRequestedBy: null,
+pauseRequestedByName: null,
+pauseResumeX: false,
+pauseResumeO: false
+};
+let camera = {
+x: 0.5, y: 0.5, zoom: 2,
+targetX: 0.5, targetY: 0.5, targetZoom: 2,
+isDragging: false, dragStartX: 0, dragStartY: 0,
+dragCameraStartX: 0, dragCameraStartY: 0
+};
+let cachedBounds = null;
+let boundsDirty = true;
+let canvas, ctx;
+let animationFrameId = null;
+let lastHighlightedMove = null;
+let highlightStartTime = 0;
+function registerActivity() {
+if (sleepMode) return;
+lastUserActivityAt = Date.now();
+clearTopNotification();
+idleWarningShown = false;
+}
+function startIdleMonitor() {
+stopIdleMonitor();
+lastUserActivityAt = Date.now();
+idleWarningShown = false;
+idleCheckInterval = setInterval(idleCheckTick, IDLE_CHECK_INTERVAL);
+}
+function stopIdleMonitor() {
+if (idleCheckInterval) { clearInterval(idleCheckInterval); idleCheckInterval = null; }
+}
+function idleCheckTick() {
+if (sleepMode || !currentUser || accountDeletionInProgress) return;
+const idleFor = Date.now() - lastUserActivityAt;
+if (idleFor >= IDLE_SLEEP_TIMEOUT) {
+enterSleepMode();
+} else if (!idleWarningShown && idleFor >= IDLE_SLEEP_TIMEOUT - IDLE_WARN_BEFORE) {
+idleWarningShown = true;
+showSleepWarning();
+playBellSound();
+}
+}
+function showSleepWarning() {
+const notif = document.getElementById('join-notification');
+if (!notif) return;
+if (notifTimer) { clearTimeout(notifTimer); notifTimer = null; }
+notif.textContent = '\u{1F634} Через 30 сек игра уснёт из-за неактивности. Кликните, чтобы остаться';
+notif.className = 'join-notification active sleep-warning';
+}
+function clearTopNotification() {
+const notif = document.getElementById('join-notification');
+if (notifTimer) { clearTimeout(notifTimer); notifTimer = null; }
+if (notif) notif.className = 'join-notification';
+}
+function enterSleepMode() {
+if (sleepMode) return;
+sleepMode = true;
+clearTopNotification();
+stopIdleMonitor();
+const sleepBtn = document.getElementById('sleep-now-btn');
+if (sleepBtn) sleepBtn.style.display = 'none';
+if (gamesListener) { try { gamesListener(); } catch (e) {} gamesListener = null; }
+if (gameListener) { try { gameListener(); } catch (e) {} gameListener = null; }
+if (activityListener) { try { activityListener(); } catch (e) {} activityListener = null; }
+if (myCreatedGameListener) { try { myCreatedGameListener(); } catch (e) {} myCreatedGameListener = null; }
+stopBanWatch();
+stopTimerUpdate();
+stopActivityUpdate();
+stopOpponentCheck();
+stopLobbyCleanup();
+stopLobbyCountdowns();
+stopOrphanCheck();
+stopWaitingTimer();
+stopCreatorHeartbeat();
+if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+if (globalAudioContext && globalAudioContext.state === 'running') {
+globalAudioContext.suspend().catch(() => {});
+}
+showScreensaver();
+}
+function showScreensaver() {
+const saver = document.getElementById('sleep-saver');
+if (!saver) return;
+saver.classList.add('active');
+saver.addEventListener('pointerdown', () => {
+location.reload();
+}, { once: true });
+}
+window.enterSleepNow = function() {
+if (currentUser && !sleepMode && !accountDeletionInProgress) {
+enterSleepMode();
+}
+};
+window.addEventListener('pointerdown', registerActivity, true);
+window.addEventListener('keydown', registerActivity, true);
+window.addEventListener('wheel', registerActivity, { passive: true, capture: true });
+window.addEventListener('scroll', registerActivity, { passive: true, capture: true });
+function catalogRef() {
+return doc(db, 'meta', 'lobby');
+}
+function activityRef(gameId) {
+return doc(db, 'activity', gameId);
+}
+function cardFromGame(id, g) {
+return {
+id: id,
+roomName: g.roomName || '???',
+status: g.status,
+playerX: g.playerX || null,
+playerO: g.playerO || null,
+playerXName: g.playerXName || null,
+playerOName: g.playerOName || null,
+createdBy: g.createdBy || null,
+createdByName: g.createdByName || null,
+createdAt: g.createdAt || null,
+endedAt: g.endedAt || null,
+endReason: g.endReason || null,
+winner: g.winner || null,
+pausedAt: g.pausedAt || null,
+statsAppliedX: !!g.statsAppliedX,
+statsAppliedO: !!g.statsAppliedO,
+changedAt: Date.now()
+};
+}
+function upsertRoom(rooms, card) {
+const i = rooms.findIndex(r => r.id === card.id);
+if (i >= 0) rooms[i] = { ...rooms[i], ...card };
+else rooms.push(card);
+}
+function removeRoom(rooms, id) {
+const i = rooms.findIndex(r => r.id === id);
+if (i >= 0) rooms.splice(i, 1);
+}
+function trimRooms(rooms) {
+while (rooms.length > MAX_CATALOG_ROOMS) {
+let idx = rooms.findIndex(r => r.status === STATUS_COMPLETED || r.status === STATUS_CANCELLED);
+if (idx < 0) {
+idx = 0;
+for (let i = 1; i < rooms.length; i++) {
+if ((rooms[i].createdAt || 0) < (rooms[idx].createdAt || 0)) idx = i;
+}
+}
+rooms.splice(idx, 1);
+}
+}
+async function updateCatalog(mutator) {
+try {
+await runTransaction(db, async (tx) => {
+const ref = catalogRef();
+const snap = await tx.get(ref);
+const data = snap.exists() ? snap.data() : null;
+const rooms = data && Array.isArray(data.rooms) ? data.rooms.slice() : [];
+mutator(rooms);
+trimRooms(rooms);
+tx.set(ref, { rooms: rooms, updatedAt: Date.now() });
+});
+} catch (e) {
+console.warn('Каталог лобби не обновлён:', e && e.code ? e.code : e);
+}
+}
+function upsertCatalogFromGame(gameId, game) {
+updateCatalog(rooms => upsertRoom(rooms, cardFromGame(gameId, game)));
+}
+async function rebuildCatalog() {
+if (rebuildInProgress) return;
+rebuildInProgress = true;
+try {
+const snapshot = await getDocs(collection(db, 'games'));
+const now = Date.now();
+const rooms = [];
+snapshot.forEach(d => {
+const g = d.data();
+if (isGameStale(g, now)) {
+deleteDoc(doc(db, 'games', d.id)).catch(() => {});
+} else {
+rooms.push(cardFromGame(d.id, g));
+}
+});
+await setDoc(catalogRef(), { rooms: rooms, updatedAt: now });
+markConnectionOk(false);
+console.log('[CATALOG] Пересобран, комнат:', rooms.length);
+} catch (e) {
+console.warn('Пересборка каталога не удалась:', e && e.code ? e.code : e);
+if (e && e.code === 'permission-denied') {
+showMessage('lobby-error', '\u26A0\uFE0F Нет доступа к каталогу лобби. Добавьте правило для /meta в консоли Firebase.');
+}
+} finally {
+rebuildInProgress = false;
+}
+}
+function startOrphanCheck() {
+stopOrphanCheck();
+orphanCheckInterval = setInterval(verifyOrphanedCards, ORPHAN_CHECK_INTERVAL);
+}
+function stopOrphanCheck() {
+if (orphanCheckInterval) {
+clearInterval(orphanCheckInterval);
+orphanCheckInterval = null;
+}
+}
+function verifyOrphanedCards() {
+if (!currentUser) return;
+const now = Date.now();
+lastLobbySnapshot.forEach(({ id, game }) => {
+if (game.status === STATUS_COMPLETED || game.status === STATUS_CANCELLED) return;
+let suspicious = false;
+if (game.status === STATUS_WAITING) {
+const age = now - (game.createdAt || 0);
+suspicious = age > 120000 && age < WAITING_TIMEOUT;
+} else if (game.status === STATUS_PLAYING || game.status === STATUS_PAUSED) {
+const anchor = game.changedAt || game.createdAt || 0;
+suspicious = anchor && (now - anchor) > ORPHAN_HEAL_THRESHOLD;
+}
+if (!suspicious) return;
+if (orphanCheckingIds.has(id)) return;
+orphanCheckingIds.add(id);
+getDoc(doc(db, 'games', id)).then(snap => {
+if (!snap.exists()) {
+console.warn(`[HEAL] Игра ${id} не найдена — карточка удаляется из каталога`);
+updateCatalog(rooms => removeRoom(rooms, id));
+deleteDoc(activityRef(id)).catch(() => {});
+return;
+}
+const g = snap.data();
+if (g.status !== game.status) {
+console.warn(`[HEAL] Рассинхрон каталога по игре ${id}: каталог=${game.status}, документ=${g.status} — карточка лечится`);
+upsertCatalogFromGame(id, g);
+return;
+}
+if (g.status === STATUS_PLAYING && g.turnStartTime && (now - g.turnStartTime) > PLAYING_INACTIVE_TIMEOUT) {
+console.warn(`[HEAL] Игра ${id} заброшена (нет ходов >30 мин) — удаляется`);
+deleteDoc(doc(db, 'games', id)).catch(() => {});
+updateCatalog(rooms => removeRoom(rooms, id));
+deleteDoc(activityRef(id)).catch(() => {});
+return;
+}
+updateCatalog(rooms => {
+const r = rooms.find(x => x.id === id);
+if (r) r.changedAt = Date.now();
+});
+}).catch(e => {
+console.warn('Проверка карточки не удалась:', e);
+}).finally(() => {
+orphanCheckingIds.delete(id);
+});
+});
+}
+function buildStatsHtml(w, l, n, gx, go) {
+return `\u{1F3C6} <span class="stat-num">${w}</span> • ` +
+`\u{1F614} <span class="stat-num">${l}</span> • ` +
+`\u26AA <span class="stat-num">${n}</span> • ` +
+`<span class="stat-x">X</span>: <span class="stat-num">${gx}</span> • ` +
+`<span class="stat-o">O</span>: <span class="stat-num">${go}</span>`;
+}
+function renderMyStatsFromData(d) {
+const w = toNum(d.wins), l = toNum(d.losses), n = toNum(d.noResult);
+const gx = toNum(d.gamesAsX), go = toNum(d.gamesAsO);
+const el = document.getElementById('user-stats');
+if (el) {
+el.innerHTML = buildStatsHtml(w, l, n, gx, go);
+el.title = `Побед: ${w} • Поражений: ${l} • Без результата: ${n} • Крестиками: ${gx} • Ноликами: ${go}`;
+}
+}
+async function loadMyStats() {
+if (!currentUser) return;
+try {
+const snap = await getDoc(doc(db, 'users', currentUser.uid));
+if (!snap.exists()) return;
+renderMyStatsFromData(snap.data());
+} catch (e) {}
+}
+function shortStatsLine(d) {
+const w = toNum(d.wins), l = toNum(d.losses);
+const total = toNum(d.gamesAsX) + toNum(d.gamesAsO);
+return `• \u{1F3C6} ${w} • \u{1F614} ${l} • \u{1F3AE} ${total}`;
+}
+function renderShortStats(el, d) {
+if (!el) return;
+el.textContent = shortStatsLine(d);
+el.title = `Побед: ${toNum(d.wins)} • Поражений: ${toNum(d.losses)} • Всего игр: ${toNum(d.gamesAsX) + toNum(d.gamesAsO)}`;
+}
+async function loadGameHeaderStats() {
+if (!currentUser || !currentGame) return;
+const myEl = document.getElementById('my-stats-inline');
+const oppEl = document.getElementById('opponent-stats-inline');
+const oppUid = currentUser.uid === currentGame.playerX ? currentGame.playerO : currentGame.playerX;
+const myP = getDoc(doc(db, 'users', currentUser.uid)).catch(() => null);
+const oppP = oppUid ? getDoc(doc(db, 'users', oppUid)).catch(() => null) : Promise.resolve(null);
+const [mySnap, oppSnap] = await Promise.all([myP, oppP]);
+if (mySnap && mySnap.exists) renderShortStats(myEl, mySnap.data());
+if (oppSnap && oppSnap.exists) renderShortStats(oppEl, oppSnap.data());
+}
+async function applyMyStatsForGame(gameId, card) {
+if (!currentUser) return false;
+if (card.status !== STATUS_COMPLETED && card.status !== STATUS_CANCELLED) return false;
+const isX = card.playerX === currentUser.uid;
+const isO = card.playerO === currentUser.uid;
+if (!isX && !isO) return false;
+const flag = isX ? 'statsAppliedX' : 'statsAppliedO';
+if (card[flag]) return false;
+const gameRef = doc(db, 'games', gameId);
+const userRef = doc(db, 'users', currentUser.uid);
+try {
+const result = await runTransaction(db, async (tx) => {
+const gameSnap = await tx.get(gameRef);
+if (!gameSnap.exists()) {
+return { applied: false, reason: 'GAME_NOT_FOUND' };
+}
+const g = gameSnap.data();
+if (g[flag]) {
+return { applied: false, reason: 'ALREADY_APPLIED' };
+}
+if (g.status !== STATUS_COMPLETED && g.status !== STATUS_CANCELLED) {
+return { applied: false, reason: 'NOT_FINISHED' };
+}
+let field;
+if (g.status === STATUS_COMPLETED && g.winner) {
+const iWon = (g.winner === 'X' && isX) || (g.winner === 'O' && isO);
+field = iWon ? 'wins' : 'losses';
+} else {
+field = 'noResult';
+}
+const userUpdates = { [field]: increment(1) };
+if (isX) userUpdates.gamesAsX = increment(1);
+else userUpdates.gamesAsO = increment(1);
+tx.update(userRef, userUpdates);
+tx.update(gameRef, { [flag]: true });
+return { applied: true, field };
+});
+if (result.applied) {
+return true;
+}
+return false;
+} catch (e) {
+console.warn('Начисление статистики не выполнено:', e && e.message ? e.message : e);
+return false;
+}
+}
+function spawnConfetti() {
+try {
+if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+const old = document.getElementById('confetti-layer');
+if (old) old.remove();
+const layer = document.createElement('div');
+layer.id = 'confetti-layer';
+layer.className = 'confetti-layer';
+for (let i = 0; i < CONFETTI_COUNT; i++) {
+const piece = document.createElement('div');
+piece.className = 'confetti-piece';
+piece.style.left = (Math.random() * 100) + '%';
+piece.style.backgroundColor = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+piece.style.animationDuration = (2.2 + Math.random() * 1.8) + 's';
+piece.style.animationDelay = (Math.random() * 0.6) + 's';
+layer.appendChild(piece);
+}
+document.body.appendChild(layer);
+setTimeout(() => layer.remove(), CONFETTI_LIFETIME_MS);
+} catch (e) {}
+}
+function randomPhrase(arr) {
+return arr[Math.floor(Math.random() * arr.length)];
+}
+function setHeaderSymbolPlain(sym) {
+const symbolEl = document.getElementById('player-symbol');
+if (!symbolEl) return;
+symbolEl.textContent = sym;
+symbolEl.className = 'player-symbol ' + (sym === 'X' ? 'symbol-x' : 'symbol-o');
+}
+function revealHeaderSymbol(sym) {
+const symbolEl = document.getElementById('player-symbol');
+if (!symbolEl) return;
+const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const color = sym === 'X' ? '#667eea' : '#764ba2';
+const pop = () => {
+symbolEl.textContent = sym;
+symbolEl.className = 'player-symbol ' + (sym === 'X' ? 'symbol-x' : 'symbol-o') + ' symbol-pop';
+setTimeout(() => symbolEl.classList.remove('symbol-pop'), 700);
+};
+if (reduced || !canvas) {
+pop();
+return;
+}
+try {
+const cRect = canvas.getBoundingClientRect();
+const tRect = symbolEl.getBoundingClientRect();
+const clone = document.createElement('div');
+clone.textContent = sym;
+clone.style.position = 'fixed';
+clone.style.left = (cRect.left + cRect.width / 2) + 'px';
+clone.style.top = (cRect.top + cRect.height / 2) + 'px';
+clone.style.transform = 'translate(-50%, -50%)';
+clone.style.fontSize = '64px';
+clone.style.fontWeight = '900';
+clone.style.color = color;
+clone.style.zIndex = '10003';
+clone.style.pointerEvents = 'none';
+clone.style.textShadow = '0 2px 8px rgba(0,0,0,0.25)';
+clone.style.transition = 'left 0.7s cubic-bezier(0.25,0.8,0.35,1), top 0.7s cubic-bezier(0.25,0.8,0.35,1), font-size 0.7s cubic-bezier(0.25,0.8,0.35,1)';
+document.body.appendChild(clone);
+requestAnimationFrame(() => {
+requestAnimationFrame(() => {
+clone.style.left = (tRect.left + tRect.width / 2) + 'px';
+clone.style.top = (tRect.top + tRect.height / 2) + 'px';
+clone.style.fontSize = '36px';
+});
+});
+setTimeout(() => {
+clone.remove();
+pop();
+}, 720);
+} catch (e) {
+pop();
+}
+}
+function nudgeTier(count) {
+if (count % NUDGE_MEGA_EVERY === 0) return 'mega';
+if (count % NUDGE_BIG_EVERY === 0) return 'big';
+return 'normal';
+}
+function nudgeTextFor(count, name) {
+const tier = nudgeTier(count);
+if (tier === 'mega') return `\u{1F680} Вам дал мега-пендель игрок ${name}!`;
+if (tier === 'big') return `\u{1F4A5} Вам дал большой пендель игрок ${name}!`;
+return `\u{1F9B6} Вас пнул игрок ${name}!`;
+}
+function lotteryAngle(t) {
+if (t <= LOTTERY_SLOW_END) {
+return LOTTERY_OMEGA_SLOW * t;
+}
+const aSlow = LOTTERY_OMEGA_SLOW * LOTTERY_SLOW_END;
+if (t <= LOTTERY_FAST_END) {
+return aSlow + LOTTERY_OMEGA_FAST * (t - LOTTERY_SLOW_END);
+}
+const aFast = aSlow + LOTTERY_OMEGA_FAST * (LOTTERY_FAST_END - LOTTERY_SLOW_END);
+const u = Math.min(1, (t - LOTTERY_FAST_END) / (LOTTERY_BRAKE_END - LOTTERY_FAST_END));
+return aFast + LOTTERY_OMEGA_FAST * (LOTTERY_BRAKE_END - LOTTERY_FAST_END) * (u - u * u + u * u * u / 3);
+}
+function drawCoin(x, y, symbol, theta, scale, glow, alpha) {
+const color = symbol === 'X' ? '#667eea' : '#764ba2';
+const R = 46 * scale;
+ctx.save();
+ctx.globalAlpha = alpha;
+ctx.translate(x, y);
+if (glow > 0) {
+ctx.shadowColor = color;
+ctx.shadowBlur = glow;
+}
+ctx.beginPath();
+ctx.arc(0, 0, R, 0, Math.PI * 2);
+ctx.fillStyle = '#ffffff';
+ctx.fill();
+ctx.lineWidth = 3;
+ctx.strokeStyle = color;
+ctx.stroke();
+ctx.shadowBlur = 0;
+const c = Math.cos(theta);
+if (Math.abs(c) < 0.06) {
+ctx.beginPath();
+ctx.moveTo(0, -R * 0.9);
+ctx.lineTo(0, R * 0.9);
+ctx.lineWidth = 2;
+ctx.strokeStyle = '#9e9e9e';
+ctx.stroke();
+} else {
+ctx.scale(c, 1);
+ctx.fillStyle = color;
+ctx.font = `900 ${Math.round(58 * scale)}px Segoe UI, Arial`;
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText(symbol, 0, 2);
+}
+ctx.restore();
+}
+function drawLottery() {
+if (!lottery || !canvas || !ctx) return;
+const t = Date.now() - lottery.startTime;
+if (t >= LOTTERY_FADE_END) {
+lottery = null;
+return;
+}
+const myS = lottery.mySymbol;
+const oppS = OTHER[myS];
+const cx = canvas.width / 2;
+const cy = canvas.height / 2;
+let overlayAlpha = 1;
+if (t > LOTTERY_REVEAL_END) {
+overlayAlpha = Math.max(0, 1 - (t - LOTTERY_REVEAL_END) / (LOTTERY_FADE_END - LOTTERY_REVEAL_END));
+}
+ctx.save();
+ctx.globalAlpha = 0.65 * overlayAlpha;
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.globalAlpha = overlayAlpha;
+if (t < LOTTERY_BRAKE_END) {
+const theta = lotteryAngle(t);
+drawCoin(cx - 80, cy, 'X', theta, 1, 0, overlayAlpha);
+drawCoin(cx + 80, cy, 'O', theta, 1, 0, overlayAlpha);
+ctx.fillStyle = '#666';
+ctx.font = 'bold 15px Segoe UI, Arial';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('\u{1F3B0} Розыгрыш символа...', cx, cy - 95);
+} else {
+const r = Math.min(1, (t - LOTTERY_BRAKE_END) / 1200);
+const ease = 1 - Math.pow(1 - r, 3);
+const myStartX = myS === 'X' ? cx - 80 : cx + 80;
+const oppStartX = myS === 'X' ? cx + 80 : cx - 80;
+const oppTargetX = oppStartX + (oppStartX > cx ? 100 : -100);
+const myX = myStartX + (cx - myStartX) * ease;
+const oppX = oppStartX + (oppTargetX - oppStartX) * ease;
+const myScale = 1 + 0.55 * ease;
+const myGlow = 28 * ease;
+const oppAlpha = overlayAlpha * (1 - 0.55 * ease);
+drawCoin(oppX, cy, oppS, 0, 1, 0, oppAlpha);
+drawCoin(myX, cy, myS, 0, myScale, myGlow, overlayAlpha);
+if (r > 0.45) {
+const labelAlpha = overlayAlpha * Math.min(1, (r - 0.45) / 0.4);
+ctx.globalAlpha = labelAlpha;
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.font = 'bold 15px Segoe UI, Arial';
+ctx.fillStyle = myS === 'X' ? '#667eea' : '#764ba2';
+ctx.fillText('ВЫ', cx, cy + 85);
+ctx.fillStyle = '#999';
+ctx.fillText('СОПЕРНИК', oppX, cy + 62);
+}
+}
+ctx.restore();
+}
+function getConnectionDot() {
+return document.getElementById('connection-dot');
+}
+function markConnectionOk(withBlink) {
+lastConnectionOk = Date.now();
+connectionError = false;
+const dot = getConnectionDot();
+if (!dot) return;
+dot.classList.remove('offline');
+dot.classList.add('online');
+dot.title = 'Соединение с сервером: ОК';
+lastDotState = 'online|' + dot.title;
+if (withBlink) {
+dot.classList.remove('blink-once');
+void dot.offsetWidth;
+dot.classList.add('blink-once');
+}
+}
+function markConnectionError() {
+connectionError = true;
+refreshConnectionDot();
+}
+function refreshConnectionDot() {
+const dot = getConnectionDot();
+if (!dot) return;
+const now = Date.now();
+let cls, title;
+if (!navigator.onLine || connectionError ||
+(lastConnectionOk > 0 && now - lastConnectionOk > CONNECTION_TIMEOUT)) {
+cls = 'offline';
+title = navigator.onLine ? 'Соединение с сервером: НЕТ ОТВЕТА' : 'Соединение: НЕТ СЕТИ';
+} else if (lastConnectionOk === 0) {
+cls = '';
+title = 'Соединение с сервером: установка...';
+} else {
+cls = 'online';
+title = 'Соединение с сервером: ОК';
+}
+const state = cls + '|' + title;
+if (state === lastDotState) return;
+lastDotState = state;
+dot.classList.remove('online', 'offline', 'blink-once');
+if (cls) dot.classList.add(cls);
+dot.title = title;
+}
+function startConnectionMonitor() {
+if (connectionMonitorInterval) clearInterval(connectionMonitorInterval);
+connectionMonitorInterval = setInterval(refreshConnectionDot, CONNECTION_CHECK_INTERVAL);
+if (connectionPingInterval) clearInterval(connectionPingInterval);
+connectionPingInterval = setInterval(() => {
+if (document.hidden || !currentUser || sleepMode) return;
+const lobbyEl = document.getElementById('lobby-screen');
+if (!lobbyEl || !lobbyEl.classList.contains('active')) return;
+getDoc(catalogRef())
+.then(() => markConnectionOk(false))
+.catch(() => markConnectionError());
+}, CONNECTION_PING_INTERVAL);
+}
+window.addEventListener('online', () => { lastDotState = ''; refreshConnectionDot(); });
+window.addEventListener('offline', () => { lastDotState = ''; refreshConnectionDot(); });
+function saveCreatedGameId(gameId) {
+try {
+sessionStorage.setItem('myCreatedGameId', gameId);
+localStorage.setItem('myCreatedGameId_persistent', gameId);
+} catch (e) {}
+}
+function getSavedCreatedGameId() {
+try { return sessionStorage.getItem('myCreatedGameId'); } catch (e) { return null; }
+}
+function getPersistentCreatedGameId() {
+try { return localStorage.getItem('myCreatedGameId_persistent'); } catch (e) { return null; }
+}
+function clearSavedCreatedGameId() {
+try {
+sessionStorage.removeItem('myCreatedGameId');
+localStorage.removeItem('myCreatedGameId_persistent');
+} catch (e) {}
+}
+function saveActiveGameId(gameId) {
+try { localStorage.setItem('myActiveGameId', gameId); } catch (e) {}
+}
+function getSavedActiveGameId() {
+try { return localStorage.getItem('myActiveGameId'); } catch (e) { return null; }
+}
+function clearSavedActiveGameId() {
+try { localStorage.removeItem('myActiveGameId'); } catch (e) {}
+}
+async function countMyActiveGames() {
+if (!currentUser) return 0;
+const activeStatuses = [STATUS_WAITING, STATUS_PLAYING, STATUS_PAUSED];
+try {
+const [s1, s2] = await Promise.all([
+getDocs(query(collection(db, 'games'), where('playerX', '==', currentUser.uid), where('status', 'in', activeStatuses))),
+getDocs(query(collection(db, 'games'), where('playerO', '==', currentUser.uid), where('status', 'in', activeStatuses)))
+]);
+markConnectionOk(false);
+const ids = new Set();
+s1.forEach(d => { const g = d.data(); if (activeStatuses.includes(g.status)) ids.add(d.id); });
+s2.forEach(d => { const g = d.data(); if (activeStatuses.includes(g.status)) ids.add(d.id); });
+return ids.size;
+} catch (e) {
+markConnectionError();
+console.warn('countMyActiveGames: ошибка запроса:', e && e.code);
+return 0;
+}
+}
+async function createGameDocWithKey(baseWord, buildGameData) {
+const wordLower = baseWord.toLowerCase();
+const wordDisplay = baseWord;
+for (let n = 1; n <= ROOM_NUMBER_MAX; n++) {
+const key = `${wordLower}-${n}`;
+const ref = doc(db, 'games', key);
+try {
+await runTransaction(db, async (tx) => {
+const snap = await tx.get(ref);
+if (snap.exists()) {
+throw new Error('ROOM_KEY_OCCUPIED');
+}
+tx.set(ref, buildGameData(key, wordDisplay, n));
+});
+return key;
+} catch (e) {
+if (e && e.message === 'ROOM_KEY_OCCUPIED') {
+continue;
+}
+throw e;
+}
+}
+throw new Error('NO_FREE_ROOM_NUMBER');
+}
+function startCreatorHeartbeat() {
+stopCreatorHeartbeat();
+creatorHeartbeatInterval = setInterval(async () => {
+if (!myCreatedGameId || !currentUser || !myCreatedSlot) return;
+try {
+const field = myCreatedSlot === 'X' ? 'playerXLastActivity' : 'playerOLastActivity';
+await setDoc(activityRef(myCreatedGameId), { [field]: Date.now() }, { merge: true });
+markConnectionOk(true);
+} catch (e) { markConnectionError(); }
+}, CREATOR_HEARTBEAT_INTERVAL);
+}
+function stopCreatorHeartbeat() {
+if (creatorHeartbeatInterval) {
+clearInterval(creatorHeartbeatInterval);
+creatorHeartbeatInterval = null;
+}
+}
+function restoreActiveFromSnap(savedGameId, gameSnap) {
+if (!gameSnap || !gameSnap.exists()) {
+if (savedGameId) clearSavedActiveGameId();
+return false;
+}
+const game = gameSnap.data();
+const isMyGame = game.playerX === currentUser.uid || game.playerO === currentUser.uid;
+if (!isMyGame) {
+clearSavedActiveGameId();
+return false;
+}
+if (game.status === STATUS_PLAYING || game.status === STATUS_PAUSED) {
+currentGame = { id: savedGameId, ...game };
+myActiveGameId = savedGameId;
+startGame(false);
+return true;
+}
+clearSavedActiveGameId();
+return false;
+}
+async function restoreCreatedFromSnap(sessionGameId, gameSnap) {
+if (!gameSnap || !gameSnap.exists()) {
+if (sessionGameId) clearSavedCreatedGameId();
+return 'none';
+}
+const game = gameSnap.data();
+const isMyGame = game.playerX === currentUser.uid || game.playerO === currentUser.uid;
+if (!isMyGame) {
+clearSavedCreatedGameId();
+return 'none';
+}
+if (game.status === STATUS_PLAYING) {
+const opponentName = (currentUser.uid === game.playerX) ? game.playerOName : game.playerXName;
+notifyOpponentJoined(opponentName || 'Соперник');
+currentGame = { id: sessionGameId, ...game };
+myActiveGameId = sessionGameId;
+clearSavedCreatedGameId();
+myCreatedGameId = null;
+stopWaitingTimer();
+startGame(false);
+return 'started';
+}
+if (game.status === STATUS_WAITING) {
+const age = game.createdAt ? (Date.now() - game.createdAt) : 0;
+if (age > WAITING_TIMEOUT) {
+await deleteDoc(doc(db, 'games', sessionGameId)).catch(() => {});
+clearSavedCreatedGameId();
+return 'none';
+}
+myCreatedGameId = sessionGameId;
+myCreatedSlot = (game.playerX === currentUser.uid) ? 'X' : 'O';
+updateCreateButton();
+listenToMyCreatedGame(sessionGameId);
+startCreatorHeartbeat();
+startWaitingTimer(WAITING_TIMEOUT - age);
+return 'waiting';
+}
+clearSavedCreatedGameId();
+return 'none';
+}
+async function restorePersistentCreated() {
+const persistentGameId = getPersistentCreatedGameId();
+if (!persistentGameId) return false;
+try {
+const gameSnap = await getDoc(doc(db, 'games', persistentGameId));
+markConnectionOk(false);
+if (!gameSnap.exists()) {
+clearSavedCreatedGameId();
+return false;
+}
+const game = gameSnap.data();
+const isMyGame = game.playerX === currentUser.uid || game.playerO === currentUser.uid;
+if (!isMyGame) {
+clearSavedCreatedGameId();
+return false;
+}
+if (game.status === STATUS_PLAYING || game.status === STATUS_PAUSED) {
+currentGame = { id: persistentGameId, ...game };
+myActiveGameId = persistentGameId;
+clearSavedCreatedGameId();
+myCreatedGameId = null;
+stopWaitingTimer();
+startGame(false);
+return true;
+}
+if (game.status === STATUS_WAITING) {
+await deleteDoc(doc(db, 'games', persistentGameId)).catch(() => {});
+clearSavedCreatedGameId();
+return false;
+}
+clearSavedCreatedGameId();
+return false;
+} catch (e) {
+markConnectionError();
+clearSavedCreatedGameId();
+return false;
+}
+}
+function startWaitingTimer(ms) {
+stopWaitingTimer();
+waitingStartTime = Date.now();
+const statusEl = document.getElementById('lobby-status');
+const timerEl = document.getElementById('lobby-timer');
+statusEl.textContent = LOBBY_WAITING;
+timerEl.style.display = 'block';
+waitingTimerInterval = setInterval(() => {
+const elapsed = Date.now() - waitingStartTime;
+const remaining = ms - elapsed;
+if (remaining <= 0) {
+autoCloseMyGame();
+return;
+}
+const mins = Math.floor(remaining / 60000);
+const secs = Math.floor((remaining % 60000) / 1000);
+timerEl.textContent = `\u23F3 Ожидание соперника: ${mins}:${String(secs).padStart(2, '0')}`;
+}, WAITING_CHECK_INTERVAL);
+}
+function stopWaitingTimer() {
+if (waitingTimerInterval) {
+clearInterval(waitingTimerInterval);
+waitingTimerInterval = null;
+}
+waitingStartTime = null;
+const statusEl = document.getElementById('lobby-status');
+const timerEl = document.getElementById('lobby-timer');
+if (statusEl) statusEl.textContent = LOBBY_MAIN;
+if (timerEl) timerEl.style.display = 'none';
+}
+async function autoCloseMyGame() {
+if (!myCreatedGameId) return;
+stopWaitingTimer();
+stopCreatorHeartbeat();
+const closedId = myCreatedGameId;
+let deleted = false;
+try {
+await runTransaction(db, async (tx) => {
+const ref = doc(db, 'games', closedId);
+const snap = await tx.get(ref);
+if (!snap.exists()) return;
+const g = snap.data();
+if (g.status !== STATUS_WAITING) return;
+tx.delete(ref);
+deleted = true;
+});
+} catch (e) {
+console.warn('Автозакрытие комнаты не выполнено:', e && e.message ? e.message : e);
+}
+if (deleted) {
+updateCatalog(rooms => removeRoom(rooms, closedId));
+deleteDoc(activityRef(closedId)).catch(() => {});
+}
+if (myCreatedGameListener) { myCreatedGameListener(); myCreatedGameListener = null; }
+myCreatedGameId = null;
+myCreatedSlot = null;
+clearSavedCreatedGameId();
+updateCreateButton();
+if (deleted) {
+showMessage('lobby-error', '\u23F0 Время ожидания истекло. Игра удалена.');
+}
+}
+function initAudioContext() {
+if (!globalAudioContext) {
+try {
+globalAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+} catch (e) {}
+}
+if (globalAudioContext && globalAudioContext.state === 'suspended') {
+globalAudioContext.resume().catch(() => {});
+}
+}
+document.addEventListener('click', initAudioContext, { once: true });
+document.addEventListener('keydown', initAudioContext, { once: true });
+function playBellSound() {
+try {
+initAudioContext();
+if (!globalAudioContext) return;
+if (globalAudioContext.state === 'suspended') return;
+const oscillator = globalAudioContext.createOscillator();
+const gainNode = globalAudioContext.createGain();
+oscillator.connect(gainNode);
+gainNode.connect(globalAudioContext.destination);
+oscillator.type = 'sine';
+oscillator.frequency.setValueAtTime(880, globalAudioContext.currentTime);
+gainNode.gain.setValueAtTime(0.3, globalAudioContext.currentTime);
+gainNode.gain.exponentialRampToValueAtTime(0.001, globalAudioContext.currentTime + 0.6);
+oscillator.start(globalAudioContext.currentTime);
+oscillator.stop(globalAudioContext.currentTime + 0.6);
+} catch (e) {}
+}
+function showTopNotification(text, isNudge) {
+const notif = document.getElementById('join-notification');
+if (!notif) return;
+if (notifTimer) { clearTimeout(notifTimer); notifTimer = null; }
+notif.textContent = text;
+notif.className = 'join-notification active' + (isNudge ? ' nudge' : '');
+notifTimer = setTimeout(() => {
+notif.className = 'join-notification';
+notifTimer = null;
+}, JOIN_NOTIFICATION_DURATION);
+}
+function showJoinNotification(playerName) {
+showTopNotification(`\u{1F514} Игрок ${playerName} присоединился!`, false);
+}
+function notifyOpponentJoined(playerName) {
+showJoinNotification(playerName);
+playBellSound();
+}
+window.toggleSettingsMenu = function(event) {
+event.stopPropagation();
+const menu = document.getElementById('settings-menu');
+if (!menu) return;
+if (menu.style.display === 'none') {
+menu.style.display = 'flex';
+} else {
+menu.style.display = 'none';
+}
+};
+window.closeSettingsMenu = function() {
+const menu = document.getElementById('settings-menu');
+if (menu) menu.style.display = 'none';
+};
+document.addEventListener('click', () => {
+closeSettingsMenu();
+});
+window.togglePasswordVisibility = function() {
+const inp = document.getElementById('password');
+const btn = document.getElementById('eye-btn');
+if (inp.type === 'password') {
+inp.type = 'text';
+btn.textContent = '\u{1F648}';
+btn.title = 'Скрыть пароль';
+} else {
+inp.type = 'password';
+btn.textContent = '\u{1F441}\uFE0F';
+btn.title = 'Показать пароль';
+}
+};
+const PAN_KEYS = {
+KeyW: [0, -1], ArrowUp: [0, -1],
+KeyS: [0, 1], ArrowDown: [0, 1],
+KeyA: [-1, 0], ArrowLeft: [-1, 0],
+KeyD: [1, 0], ArrowRight: [1, 0]
+};
+document.addEventListener('keydown', (e) => {
+if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+if (e.ctrlKey && e.altKey && e.code === 'KeyD') {
+e.preventDefault();
+debugPanelOpen ? closeDebugPanel() : openDebugPanel();
+return;
+}
+if (e.ctrlKey || e.altKey || e.metaKey) return;
+const gameScreenActive = document.getElementById('game-screen').classList.contains('active');
+if (!gameScreenActive) return;
+if (PAN_KEYS[e.code]) {
+e.preventDefault();
+panCameraByCell(PAN_KEYS[e.code][0], PAN_KEYS[e.code][1]);
+return;
+}
+if (e.code === 'Space') { e.preventDefault(); resetView(); }
+if (e.code === 'Equal' || e.code === 'NumpadAdd') { e.preventDefault(); zoomIn(); }
+if (e.code === 'Minus' || e.code === 'NumpadSubtract') { e.preventDefault(); zoomOut(); }
+if (e.code === 'Enter' || e.code === 'NumpadEnter') {
+e.preventDefault();
+const cell = getHoverCell();
+if (cell) tryMakeMove(cell.x, cell.y);
+}
+if (e.code === 'Backspace') {
+e.preventDefault();
+undoMove();
+}
+});
+function panCameraByCell(dx, dy) {
+camera.targetX += dx;
+camera.targetY += dy;
+}
+function sessionActiveFromData(data) {
+if (!data.activeSessionId || !data.sessionLeaseUntil) return false;
+if (data.activeSessionId === SESSION_ID) return false;
+return Date.now() < data.sessionLeaseUntil;
+}
+async function checkSessionActive(uid) {
+try {
+const userDoc = await getDoc(doc(db, 'users', uid));
+markConnectionOk(false);
+if (!userDoc.exists()) return false;
+return sessionActiveFromData(userDoc.data());
+} catch (e) { markConnectionError(); return false; }
+}
+async function claimSession(uid) {
+try {
+await updateDoc(doc(db, 'users', uid), {
+activeSessionId: SESSION_ID,
+sessionLeaseUntil: Date.now() + SESSION_LEASE_MS,
+sessionLastActivity: Date.now()
+});
+markConnectionOk(false);
+return true;
+} catch (e) {
+markConnectionError();
+return false;
+}
+}
+async function claimSessionWithLogin(uid) {
+try {
+await updateDoc(doc(db, 'users', uid), {
+activeSessionId: SESSION_ID,
+sessionLeaseUntil: Date.now() + SESSION_LEASE_MS,
+sessionLastActivity: Date.now(),
+lastLoginAt: Date.now()
+});
+markConnectionOk(false);
+return true;
+} catch (e) {
+markConnectionError();
+return false;
+}
+}
+async function releaseSession(uid) {
+try {
+await updateDoc(doc(db, 'users', uid), {
+activeSessionId: null,
+sessionLeaseUntil: null,
+sessionLastActivity: null
+});
+} catch (e) {
+console.log('releaseSession: документ не найден или уже удалён');
+}
+}
+async function graceSession(uid) {
+try {
+await updateDoc(doc(db, 'users', uid), {
+sessionLeaseUntil: Date.now() + SESSION_RELEASE_GRACE_MS
+});
+} catch (e) {}
+}
+function startSessionHeartbeat(uid) {
+stopSessionHeartbeat();
+sessionHeartbeatInterval = setInterval(async () => {
+if (!currentUser) return;
+if (accountDeletionInProgress) return;
+try {
+const snap = await getDoc(doc(db, 'users', uid));
+if (!snap.exists()) {
+stopSessionHeartbeat();
+return;
+}
+const d = snap.data();
+if (d.activeSessionId === SESSION_ID) {
+await updateDoc(doc(db, 'users', uid), {
+sessionLeaseUntil: Date.now() + SESSION_LEASE_MS,
+sessionLastActivity: Date.now()
+});
+markConnectionOk(true);
+} else if (d.activeSessionId == null || !d.sessionLeaseUntil || Date.now() > d.sessionLeaseUntil) {
+const ok = await claimSession(uid);
+if (!ok) console.warn('heartbeat: не удалось вернуть слот сессии');
+} else {
+stopSessionHeartbeat();
+await signOut(auth);
+showMessage('auth-error', '\u26A0\uFE0F Сессия перехвачена другим браузером. Вход отменён.');
+}
+} catch (e) {
+markConnectionError();
+}
+}, SESSION_HEARTBEAT_INTERVAL);
+}
+function stopSessionHeartbeat() {
+if (sessionHeartbeatInterval) { clearInterval(sessionHeartbeatInterval); sessionHeartbeatInterval = null; }
+}
+window.addEventListener('pagehide', () => {
+if (currentUser && appEntered && !accountDeletionInProgress && !sleepMode) {
+graceSession(currentUser.uid);
+}
+});
+async function ensureProfileExists(user) {
+try {
+const profileSnap = await getDoc(doc(db, 'users', user.uid));
+if (!profileSnap.exists()) {
+await setDoc(doc(db, 'users', user.uid), {
+username: user.displayName || 'Игрок',
+createdAt: Date.now(),
+lastLoginAt: Date.now(),
+activeSessionId: SESSION_ID,
+sessionLeaseUntil: Date.now() + SESSION_LEASE_MS,
+sessionLastActivity: Date.now(),
+wins: 0,
+losses: 0,
+noResult: 0,
+gamesAsX: 0,
+gamesAsO: 0
+});
+console.log('%c[FIX] Профиль пересоздан (документ отсутствовал)', 'color: #ff9800; font-weight: bold;');
+}
+} catch (e) {
+console.warn('Не удалось проверить/создать профиль:', e);
+}
+}
+async function enterApp(user) {
+if (appEntered) return;
+let profileSnap = null;
+try {
+profileSnap = await getDoc(doc(db, 'users', user.uid));
+markConnectionOk(false);
+} catch (e) {
+markConnectionError();
+console.warn('[ENTER] Не удалось прочитать профиль:', e && e.code ? e.code : e);
+}
+if (profileSnap && profileSnap.exists()) {
+const pd = profileSnap.data();
+if (pd.banned === true) {
+console.warn('[BAN] Вход заблокирован: у профиля banned=true');
+showBanOverlay();
+return;
+}
+if (sessionActiveFromData(pd)) {
+startBlockedState(user);
+return;
+}
+} else {
+try {
+const trashSnap = await getDoc(doc(db, 'trash', user.uid));
+if (trashSnap.exists()) {
+console.warn('[TRASH] Вход заблокирован: аккаунт удалён');
+try { await signOut(auth); } catch (e) {}
+showMessage('auth-error', '\u{1F5D1}\uFE0F Аккаунт удалён. Вход невозможен.');
+return;
+}
+} catch (e) {
+console.warn('[TRASH] Проверка корзины недоступна:', e && e.code ? e.code : e);
+}
+}
+stopBlockedState();
+if (!profileSnap || !profileSnap.exists()) {
+await ensureProfileExists(user);
+}
+let claimed = await claimSessionWithLogin(user.uid);
+if (!claimed) {
+await new Promise(r => setTimeout(r, 1200));
+claimed = await claimSessionWithLogin(user.uid);
+}
+if (!claimed) {
+try { await signOut(auth); } catch (e) {}
+showMessage('auth-error', '\u26A0\uFE0F Не удалось занять сессию. Проверьте соединение и войдите снова.');
+return;
+}
+appEntered = true;
+pendingUser = null;
+currentUser = user;
+banKickActive = false;
+hideBanOverlay();
+startBanWatch(user.uid);
+document.getElementById('user-display').textContent = user.displayName || 'Игрок';
+startSessionHeartbeat(user.uid);
+startIdleMonitor();
+if (profileSnap && profileSnap.exists()) {
+renderMyStatsFromData(profileSnap.data());
+}
+const savedActiveId = getSavedActiveGameId();
+const savedCreatedId = getSavedCreatedGameId();
+const batch = await Promise.all([
+savedActiveId ? getDoc(doc(db, 'games', savedActiveId)).catch(() => null) : Promise.resolve(null),
+savedCreatedId ? getDoc(doc(db, 'games', savedCreatedId)).catch(() => null) : Promise.resolve(null),
+loadLobbyConfig()
+]);
+markConnectionOk(false);
+const restoredActive = restoreActiveFromSnap(savedActiveId, batch[0]);
+if (!restoredActive) {
+const createdResult = await restoreCreatedFromSnap(savedCreatedId, batch[1]);
+if (createdResult === 'none') {
+await restorePersistentCreated();
+}
+if (!currentGame) {
+showScreen('lobby-screen');
+}
+}
+}
+function startBlockedState(user) {
+pendingUser = user;
+currentUser = null;
+showScreen('auth-screen');
+showMessage('auth-error', '\u26A0\uFE0F Аккаунт уже активен в другом окне или браузере. Окно будет проверять освобождение автоматически...');
+if (blockCheckInterval) clearInterval(blockCheckInterval);
+blockCheckInterval = setInterval(async () => {
+if (!pendingUser) { stopBlockedState(); return; }
+try {
+const still = await checkSessionActive(pendingUser.uid);
+if (!still) {
+const u = pendingUser;
+stopBlockedState();
+enterApp(u);
+}
+} catch (e) {}
+}, BLOCKED_RETRY_INTERVAL);
+}
+function stopBlockedState() {
+if (blockCheckInterval) { clearInterval(blockCheckInterval); blockCheckInterval = null; }
+}
+function showBanOverlay() {
+const overlay = document.getElementById('ban-overlay');
+if (overlay) overlay.classList.add('active');
+}
+function hideBanOverlay() {
+const overlay = document.getElementById('ban-overlay');
+if (overlay) overlay.classList.remove('active');
+}
+function startBanWatch(uid) {
+stopBanWatch();
+banListener = onSnapshot(doc(db, 'users', uid), async (snap) => {
+if (!snap.exists()) return;
+if (snap.data().banned === true) {
+console.warn('[BAN] Живой кик: у профиля появилось banned=true');
+banKickActive = true;
+if (currentGame && currentGame.id && currentGame.status === STATUS_PLAYING) {
+try {
+await updateDoc(doc(db, 'games', currentGame.id), {
+status: STATUS_CANCELLED,
+endReason: 'account_banned',
+endedAt: Date.now()
+});
+upsertCatalogFromGame(currentGame.id, {
+...currentGame,
+status: STATUS_CANCELLED,
+endReason: 'account_banned',
+endedAt: Date.now()
+});
+} catch (e) {
+console.warn('[BAN] Не удалось завершить игру при бане:', e);
+}
+}
+showBanOverlay();
+stopBanWatch();
+signOut(auth).catch(() => {});
+}
+}, (err) => {
+console.warn('[BAN] Наблюдение за профилем недоступно:', err && err.code ? err.code : err);
+});
+}
+function stopBanWatch() {
+if (banListener) { try { banListener(); } catch (e) {} banListener = null; }
+}
+const banLogoutBtn = document.getElementById('ban-logout-btn');
+if (banLogoutBtn) {
+banLogoutBtn.addEventListener('click', async () => {
+banKickActive = false;
+hideBanOverlay();
+try { await signOut(auth); } catch (e) {}
+});
+}
+function openDebugPanel() {
+debugPanelOpen = true;
+document.getElementById('debug-overlay').classList.add('active');
+}
+window.closeDebugPanel = function() {
+debugPanelOpen = false;
+document.getElementById('debug-overlay').classList.remove('active');
+}
+function addDebugRevealCells() {
+for (let x = -DEBUG_REVEAL_RANGE; x <= DEBUG_REVEAL_RANGE; x++)
+for (let y = -DEBUG_REVEAL_RANGE; y <= DEBUG_REVEAL_RANGE; y++)
+gameState.revealed.add(`${x},${y}`);
+invalidateBounds();
+}
+function restoreRealRevealed() {
+gameState.revealed = new Set(realRevealedSet);
+invalidateBounds();
+}
+window.applyDebugSettings = function() {
+const revealAll = document.getElementById('dbg-reveal').checked;
+if (revealAll) addDebugRevealCells();
+else restoreRealRevealed();
+updateDebugIndicator();
+}
+window.resetDebugSettings = function() {
+document.getElementById('dbg-timer').checked = false;
+document.getElementById('dbg-reveal').checked = false;
+restoreRealRevealed();
+updateDebugIndicator();
+}
+function updateDebugIndicator() {
+const indicator = document.getElementById('debug-indicator');
+const timerOn = document.getElementById('dbg-timer').checked;
+const revealOn = document.getElementById('dbg-reveal').checked;
+(timerOn || revealOn) ? indicator.classList.add('active') : indicator.classList.remove('active');
+}
+function isTimerDisabled() { return document.getElementById('dbg-timer').checked; }
+document.querySelectorAll('.debug-option').forEach(opt => {
+opt.addEventListener('click', (e) => {
+const checkbox = opt.querySelector('input[type="checkbox"]');
+if (e.target !== checkbox) {
+checkbox.checked = !checkbox.checked;
+checkbox.dispatchEvent(new Event('change'));
+}
+});
+});
+function showResultModal(message) {
+if (gameEndHandled) return;
+const overlay = document.getElementById('result-overlay');
+if (overlay.classList.contains('active')) return;
+gameEndHandled = true;
+document.getElementById('result-message').textContent = message;
+overlay.classList.add('active');
+}
+window.closeResultModal = function() {
+document.getElementById('result-overlay').classList.remove('active');
+const layer = document.getElementById('confetti-layer');
+if (layer) layer.remove();
+cleanup();
+}
+window.closeConfirmModal = function() {
+document.getElementById('confirm-overlay').classList.remove('active');
+}
+window.confirmSurrender = async function() {
+document.getElementById('confirm-overlay').classList.remove('active');
+if (!currentGame?.id) return;
+const myS = currentUser.uid === gameState.playerX ? 'X' : 'O';
+const gameRef = doc(db, 'games', currentGame.id);
+const now = Date.now();
+try {
+await runTransaction(db, async (tx) => {
+const snap = await tx.get(gameRef);
+if (!snap.exists()) throw new Error('GAME_NOT_FOUND');
+const g = snap.data();
+if (g.status !== STATUS_PLAYING) throw new Error('NOT_PLAYING');
+tx.update(gameRef, {
+status: STATUS_COMPLETED,
+winner: OTHER[myS],
+endReason: 'surrender',
+endedAt: now
+});
+});
+upsertCatalogFromGame(currentGame.id, {
+...currentGame,
+status: STATUS_COMPLETED,
+winner: OTHER[myS],
+endReason: 'surrender',
+endedAt: now
+});
+deleteDoc(activityRef(currentGame.id)).catch(() => {});
+} catch (e) {
+console.warn('Сдача не выполнена:', e && e.message ? e.message : e);
+}
+}
+window.showDeleteAccountModal = function() {
+if (!currentUser) return;
+document.getElementById('delete-account-username').textContent = currentUser.displayName || 'Игрок';
+const pwdInput = document.getElementById('delete-account-password');
+if (pwdInput) pwdInput.value = '';
+const errEl = document.getElementById('delete-account-error');
+if (errEl) errEl.style.display = 'none';
+const btn = document.getElementById('delete-account-confirm-btn');
+if (btn) { btn.disabled = false; btn.textContent = 'Да, удалить навсегда'; }
+document.getElementById('delete-account-overlay').classList.add('active');
+setTimeout(() => { if (pwdInput) pwdInput.focus(); }, 100);
+}
+window.closeDeleteAccountModal = function() {
+const pwdInput = document.getElementById('delete-account-password');
+if (pwdInput) pwdInput.value = '';
+const errEl = document.getElementById('delete-account-error');
+if (errEl) errEl.style.display = 'none';
+document.getElementById('delete-account-overlay').classList.remove('active');
+}
+function showDeleteAccountError(text) {
+const errEl = document.getElementById('delete-account-error');
+if (errEl) {
+errEl.textContent = text;
+errEl.style.display = 'block';
+}
+}
+window.confirmDeleteAccount = async function() {
+if (!currentUser) return;
+const passwordInput = document.getElementById('delete-account-password');
+const confirmBtn = document.getElementById('delete-account-confirm-btn');
+const password = passwordInput ? passwordInput.value : '';
+if (!password) {
+showDeleteAccountError('\u26A0\uFE0F Введите пароль для подтверждения удаления');
+if (passwordInput) passwordInput.focus();
+return;
+}
+if (confirmBtn) {
+confirmBtn.disabled = true;
+confirmBtn.textContent = 'Удаление...';
+}
+let reauthOk = false;
+try {
+const email = currentUser.email;
+const credential = EmailAuthProvider.credential(email, password);
+await reauthenticateWithCredential(currentUser, credential);
+reauthOk = true;
+} catch (authErr) {
+console.warn('Ре-аутентификация не прошла:', authErr.code);
+if (confirmBtn) {
+confirmBtn.disabled = false;
+confirmBtn.textContent = 'Да, удалить навсегда';
+}
+if (authErr.code === 'auth/wrong-password' || authErr.code === 'auth/invalid-credential') {
+showDeleteAccountError('\u274C Неверный пароль. Аккаунт НЕ удалён.');
+} else if (authErr.code === 'auth/too-many-requests') {
+showDeleteAccountError('\u26A0\uFE0F Слишком много попыток. Подождите немного.');
+} else {
+showDeleteAccountError('\u274C Ошибка проверки пароля: ' + (authErr.message || authErr.code));
+}
+if (passwordInput) { passwordInput.value = ''; passwordInput.focus(); }
+return;
+}
+if (!reauthOk) return;
+accountDeletionInProgress = true;
+try {
+stopIdleMonitor();
+stopSessionHeartbeat();
+stopCreatorHeartbeat();
+stopWaitingTimer();
+stopLobbyCleanup();
+stopLobbyCountdowns();
+stopOrphanCheck();
+stopBanWatch();
+if (gameListener) { try { gameListener(); } catch (e) {} gameListener = null; }
+if (activityListener) { try { activityListener(); } catch (e) {} activityListener = null; }
+if (gamesListener) { try { gamesListener(); } catch (e) {} gamesListener = null; }
+if (myCreatedGameListener) { try { myCreatedGameListener(); } catch (e) {} myCreatedGameListener = null; }
+if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+if (activityInterval) { clearInterval(activityInterval); activityInterval = null; }
+if (opponentCheckInterval) { clearInterval(opponentCheckInterval); opponentCheckInterval = null; }
+if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+let activeGames = [];
+try {
+const [gamesAsX, gamesAsO] = await Promise.all([
+getDocs(query(collection(db, 'games'), where('playerX', '==', currentUser.uid))),
+getDocs(query(collection(db, 'games'), where('playerO', '==', currentUser.uid)))
+]);
+const seenIds = new Set();
+gamesAsX.forEach(d => {
+const g = d.data();
+if ((g.status === STATUS_WAITING || g.status === STATUS_PLAYING || g.status === STATUS_PAUSED) && !seenIds.has(d.id)) {
+activeGames.push({ id: d.id, game: g });
+seenIds.add(d.id);
+}
+});
+gamesAsO.forEach(d => {
+const g = d.data();
+if ((g.status === STATUS_WAITING || g.status === STATUS_PLAYING || g.status === STATUS_PAUSED) && !seenIds.has(d.id)) {
+activeGames.push({ id: d.id, game: g });
+seenIds.add(d.id);
+}
+});
+} catch (e) {
+console.warn('Не удалось получить список игр:', e);
+}
+const now = Date.now();
+for (const { id, game } of activeGames) {
+try {
+await updateDoc(doc(db, 'games', id), {
+status: STATUS_CANCELLED,
+endReason: 'account_deleted',
+endedAt: now
+});
+upsertCatalogFromGame(id, {
+...game,
+status: STATUS_CANCELLED,
+endReason: 'account_deleted',
+endedAt: now
+});
+deleteDoc(activityRef(id)).catch(() => {});
+} catch (e) {
+console.warn(`Не удалось отменить игру ${id}:`, e);
+}
+}
+try {
+await deleteDoc(doc(db, 'users', currentUser.uid));
+console.log('[DELETE] Документ пользователя удалён из Firestore');
+} catch (e) {
+console.warn('Не удалось удалить документ пользователя:', e);
+}
+try {
+localStorage.removeItem('myActiveGameId');
+localStorage.removeItem('myCreatedGameId_persistent');
+sessionStorage.removeItem('myCreatedGameId');
+} catch (e) {}
+appEntered = false;
+currentGame = null;
+myCreatedGameId = null;
+myCreatedSlot = null;
+myActiveGameId = null;
+lastKnownMoveCount = 0;
+opponentDisconnected = false;
+disconnectStartTime = null;
+forcedDisconnect = false;
+lottery = null;
+lotteryRevealed = false;
+lastOppResumeFlag = false;
+let authDeleted = false;
+try {
+await deleteUser(auth.currentUser);
+authDeleted = true;
+console.log('[DELETE] Аккаунт удалён из Authentication');
+} catch (delErr) {
+console.warn('Ошибка удаления из Authentication:', delErr.code, delErr.message);
+try { await signOut(auth); } catch (e) {}
+}
+accountDeletionInProgress = false;
+closeDeleteAccountModal();
+showScreen('auth-screen');
+if (authDeleted) {
+showMessage('auth-success', '\u2705 Аккаунт полностью удалён. Вход больше невозможен.');
+} else {
+showMessage('auth-error', '\u26A0\uFE0F Профиль удалён, но запись входа осталась. Обратитесь к администратору.');
+}
+} catch (error) {
+console.error('Ошибка при удалении аккаунта:', error);
+accountDeletionInProgress = false;
+if (confirmBtn) {
+confirmBtn.disabled = false;
+confirmBtn.textContent = 'Да, удалить навсегда';
+}
+showDeleteAccountError('\u274C Ошибка при удалении: ' + (error.message || error));
+}
+}
+function showScreen(id) {
+document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+document.getElementById(id).classList.add('active');
+displayVersion();
+const container = document.getElementById('main-container');
+if (id === 'game-screen') {
+container.classList.add('game-mode');
+container.classList.remove('compact-mode');
+container.classList.remove('lobby-min');
+resizeCanvas();
+} else {
+container.classList.add('compact-mode');
+container.classList.remove('game-mode');
+if (id === 'lobby-screen') {
+container.classList.add('lobby-min');
+} else {
+container.classList.remove('lobby-min');
+}
+}
+const sleepBtn = document.getElementById('sleep-now-btn');
+if (sleepBtn && !sleepMode) {
+sleepBtn.style.display = (id === 'auth-screen') ? 'none' : 'block';
+}
+if (id === 'auth-screen') {
+setTimeout(() => {
+const u = document.getElementById('username');
+if (u) u.focus();
+}, 50);
+}
+if (id === 'lobby-screen') {
+lobbyPausedByVisibility = false;
+listenToAvailableGames();
+startLobbyCleanup();
+startLobbyCountdowns();
+startOrphanCheck();
+// НОВОЕ В 1.29.0: проверка версии сайта при каждом открытии лобби
+checkForUpdates();
+} else {
+if (gamesListener) { gamesListener(); gamesListener = null; }
+stopLobbyCleanup();
+stopLobbyCountdowns();
+stopOrphanCheck();
+}
+}
+function showMessage(elementId, message) {
+const el = document.getElementById(elementId);
+el.textContent = message;
+el.style.display = 'block';
+setTimeout(() => el.style.display = 'none', 5000);
+}
+function formatTime(ms) {
+if (ms < 0) ms = 0;
+const totalSeconds = Math.floor(ms / 1000);
+const hours = Math.floor(totalSeconds / 3600);
+const minutes = Math.floor((totalSeconds % 3600) / 60);
+const seconds = totalSeconds % 60;
+if (hours > 0) return `${hours}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+return `${minutes}:${String(seconds).padStart(2,'0')}`;
+}
+function validateUsername(name, maxLen) {
+if (!name) return 'Введите имя';
+if (name.length < 3) return 'Имя должно быть не менее 3 символов';
+if (name.length > maxLen) return `Имя должно быть не более ${maxLen} символов`;
+if (!/^[a-zA-Z0-9]+$/.test(name)) return 'Имя: только латинские буквы и цифры';
+return null;
+}
+function validatePassword(pass) {
+if (!pass) return 'Введите пароль';
+if (pass.length < 6) return 'Пароль минимум 6 символов';
+return null;
+}
+window.register = async function() {
+const username = document.getElementById('username').value.trim();
+const password = document.getElementById('password').value;
+const consentBox = document.getElementById('consent-check');
+if (!consentBox || !consentBox.checked) {
+return showMessage('auth-error', '\u26A0\uFE0F Для регистрации нужно согласие с политикой конфиденциальности и пользовательским соглашением.');
+}
+const nameErr = validateUsername(username, NAME_MAX_REGISTER);
+if (nameErr) return showMessage('auth-error', nameErr);
+const passErr = validatePassword(password);
+if (passErr) return showMessage('auth-error', passErr);
+try {
+const email = `${username.toLowerCase()}${EMAIL_DOMAIN}`;
+const cred = await createUserWithEmailAndPassword(auth, email, password);
+await updateProfile(cred.user, { displayName: username });
+await setDoc(doc(db, 'users', cred.user.uid), {
+username: username,
+createdAt: Date.now(),
+lastLoginAt: Date.now(),
+activeSessionId: SESSION_ID,
+sessionLeaseUntil: Date.now() + SESSION_LEASE_MS,
+sessionLastActivity: Date.now(),
+wins: 0,
+losses: 0,
+noResult: 0,
+gamesAsX: 0,
+gamesAsO: 0
+});
+markConnectionOk(false);
+document.getElementById('user-display').textContent = username;
+showMessage('auth-success', 'Регистрация успешна!');
+} catch (error) {
+markConnectionError();
+showMessage('auth-error', error.code === 'auth/email-already-in-use' ? 'Это имя уже занято. Выберите другое.' : error.message);
+}
+}
+window.login = async function() {
+const username = document.getElementById('username').value.trim();
+const password = document.getElementById('password').value;
+const nameErr = validateUsername(username, NAME_MAX_LOGIN);
+if (nameErr) return showMessage('auth-error', nameErr);
+const passErr = validatePassword(password);
+if (passErr) return showMessage('auth-error', passErr);
+try {
+const email = `${username.toLowerCase()}${EMAIL_DOMAIN}`;
+await signInWithEmailAndPassword(auth, email, password);
+if (auth.currentUser && !appEntered) {
+enterApp(auth.currentUser);
+}
+} catch (error) {
+showMessage('auth-error', 'Неверное имя или пароль');
+}
+}
+const authForm = document.getElementById('auth-form');
+if (authForm) {
+authForm.addEventListener('submit', (e) => {
+e.preventDefault();
+window.login();
+});
+}
+window.logout = async function() {
+if (myCreatedGameId) {
+await closeMyGame();
+}
+stopWaitingTimer();
+stopCreatorHeartbeat();
+stopIdleMonitor();
+stopBanWatch();
+clearSavedActiveGameId();
+myActiveGameId = null;
+if (currentUser) { await releaseSession(currentUser.uid); stopSessionHeartbeat(); }
+appEntered = false;
+await signOut(auth);
+}
+function resizeCanvas() {
+if (!canvas) return;
+const wrapper = document.getElementById('canvas-wrapper');
+if (!wrapper) return;
+const rect = wrapper.getBoundingClientRect();
+const padding = 20;
+const w = Math.max(300, Math.floor(rect.width - padding * 2));
+const h = Math.max(200, Math.floor(rect.height - padding * 2));
+canvas.width = w; canvas.height = h;
+canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+}
+window.addEventListener('resize', () => {
+if (document.getElementById('game-screen').classList.contains('active')) resizeCanvas();
+});
+function updateCreateButton() {
+const btn = document.getElementById('create-game-btn');
+const statusEl = document.getElementById('lobby-status');
+const timerEl = document.getElementById('lobby-timer');
+if (myCreatedGameId) {
+btn.style.display = '';
+btn.textContent = '\u274C Закрыть игру';
+btn.onclick = closeMyGame;
+btn.classList.add('danger');
+if (statusEl) statusEl.textContent = LOBBY_WAITING;
+if (timerEl) timerEl.style.display = 'block';
+} else {
+btn.textContent = '\u2795 Создать игру';
+btn.onclick = createGame;
+btn.classList.remove('danger');
+if (statusEl) statusEl.textContent = LOBBY_MAIN;
+if (timerEl) timerEl.style.display = 'none';
+}
+}
+function adjustCreateButtonForActive(hasActiveGame) {
+const btn = document.getElementById('create-game-btn');
+const statusEl = document.getElementById('lobby-status');
+if (!btn) return;
+if (myCreatedGameId) return;
+if (hasActiveGame) {
+btn.style.display = 'none';
+if (statusEl) statusEl.textContent = 'У вас есть активная игра — создание недоступно';
+} else {
+btn.style.display = '';
+if (statusEl && !waitingTimerInterval) statusEl.textContent = LOBBY_MAIN;
+}
+}
+window.createGame = async function() {
+if (createInProgress) return;
+createInProgress = true;
+try {
+const activeCount = await countMyActiveGames();
+if (activeCount >= MAX_ACTIVE_GAMES) {
+showMessage('lobby-error', '\u26A0\uFE0F У вас 3 неочищенные игры. Закройте старые игры (список «ваши игры») или дождитесь автоочистки.');
+return;
+}
+const baseWord = ((currentUser.displayName || '').replace(/[^a-zA-Z0-9]/g, '') || 'player');
+const firstPlayerIsX = Math.random() < 0.5;
+const now = Date.now();
+let createdData = null;
+const key = await createGameDocWithKey(baseWord, (roomKey, wordDisplay, num) => {
+createdData = {
+roomName: `${wordDisplay}-${num}`,
+roomKey: roomKey,
+roomNumber: num,
+createdBy: currentUser.uid,
+createdByName: currentUser.displayName,
+playerX: firstPlayerIsX ? currentUser.uid : null,
+playerO: firstPlayerIsX ? null : currentUser.uid,
+playerXName: firstPlayerIsX ? currentUser.displayName : null,
+playerOName: firstPlayerIsX ? null : currentUser.displayName,
+currentTurn: 'X', moves: {},
+revealed: generateInitialRevealed(),
+lastMove: null, status: STATUS_WAITING,
+gameStartTime: null, turnStartTime: null,
+winningCells: null, winTime: null,
+endedAt: null,
+pausedAt: null,
+turnRemainingFrozen: null,
+pausedTotalMs: 0,
+pauseRequestedBy: null,
+pauseRequestedByName: null,
+pauseResumeX: false,
+pauseResumeO: false,
+pauseCount: 0,
+nudgeBy: null,
+nudgeByName: null,
+nudgeCount: 0,
+nudgeAt: null,
+nudgePongAt: null,
+statsAppliedX: false,
+statsAppliedO: false,
+moveVersion: 0,
+createdAt: now
+};
+return createdData;
+});
+markConnectionOk(false);
+myCreatedGameId = key;
+myCreatedSlot = firstPlayerIsX ? 'X' : 'O';
+if (createdData) {
+upsertCatalogFromGame(key, createdData);
+}
+try {
+const actData = firstPlayerIsX
+? { playerXLastActivity: now, playerOLastActivity: null }
+: { playerXLastActivity: null, playerOLastActivity: now };
+await setDoc(activityRef(key), actData);
+} catch (e) {
+console.warn('Не удалось создать документ активности:', e);
+}
+saveCreatedGameId(key);
+updateCreateButton();
+listenToMyCreatedGame(key);
+startCreatorHeartbeat();
+startWaitingTimer(WAITING_TIMEOUT);
+} catch (error) {
+markConnectionError();
+showMessage('lobby-error', 'Ошибка: ' + error.message);
+} finally {
+createInProgress = false;
+}
+}
+window.closeMyGame = async function() {
+if (!myCreatedGameId) return;
+const closedId = myCreatedGameId;
+try {
+await runTransaction(db, async (tx) => {
+const ref = doc(db, 'games', closedId);
+const snap = await tx.get(ref);
+if (!snap.exists()) return;
+if (snap.data().status !== STATUS_WAITING) throw new Error('GAME_STARTED');
+tx.delete(ref);
+});
+} catch (e) {
+if (e && e.message === 'GAME_STARTED') return;
+console.warn('Не удалось закрыть игру:', e && e.code ? e.code : e);
+return;
+}
+stopWaitingTimer();
+stopCreatorHeartbeat();
+updateCatalog(rooms => removeRoom(rooms, closedId));
+deleteDoc(activityRef(closedId)).catch(() => {});
+if (myCreatedGameListener) { myCreatedGameListener(); myCreatedGameListener = null; }
+myCreatedGameId = null;
+myCreatedSlot = null;
+clearSavedCreatedGameId();
+updateCreateButton();
+}
+function listenToMyCreatedGame(gameId) {
+if (myCreatedGameListener) myCreatedGameListener();
+const gameRef = doc(db, 'games', gameId);
+myCreatedGameListener = onSnapshot(gameRef, (docSnap) => {
+markConnectionOk(true);
+if (!docSnap.exists()) {
+myCreatedGameId = null;
+myCreatedSlot = null;
+clearSavedCreatedGameId();
+stopWaitingTimer();
+stopCreatorHeartbeat();
+if (myCreatedGameListener) { myCreatedGameListener(); myCreatedGameListener = null; }
+updateCreateButton();
+return;
+}
+const game = docSnap.data();
+if (game.status === STATUS_COMPLETED || game.status === STATUS_CANCELLED) {
+myCreatedGameId = null;
+myCreatedSlot = null;
+clearSavedCreatedGameId();
+stopWaitingTimer();
+stopCreatorHeartbeat();
+if (myCreatedGameListener) { myCreatedGameListener(); myCreatedGameListener = null; }
+updateCreateButton();
+return;
+}
+if (game.status === STATUS_PLAYING) {
+const opponentName = (currentUser.uid === game.playerX) ? game.playerOName : game.playerXName;
+notifyOpponentJoined(opponentName || 'Соперник');
+stopWaitingTimer();
+stopCreatorHeartbeat();
+myCreatedGameId = null;
+myCreatedSlot = null;
+clearSavedCreatedGameId();
+if (myCreatedGameListener) { myCreatedGameListener(); myCreatedGameListener = null; }
+updateCreateButton();
+currentGame = { id: gameId, ...game };
+myActiveGameId = gameId;
+startGame(true);
+}
+}, (err) => { markConnectionError(); });
+}
+function generateInitialRevealed() {
+const revealed = [];
+const half = INITIAL_GRID_SIZE / 2;
+for (let x = -half; x < half; x++)
+for (let y = -half; y < half; y++)
+revealed.push(`${x},${y}`);
+return revealed;
+}
+function getStatusText(status) {
+switch (status) {
+case STATUS_WAITING: return '\u23F3 Ожидание';
+case STATUS_PLAYING: return '\u2694\uFE0F Игра идёт';
+case STATUS_PAUSED: return '\u23F8\uFE0F Пауза';
+case STATUS_COMPLETED: return '\u{1F3C6} Завершена';
+case STATUS_CANCELLED: return '\u274C Отменена';
+default: return status;
+}
+}
+function finishedStatusLine(game) {
+if (game.status === STATUS_COMPLETED) {
+const winnerName = escapeHtml(game.winner === 'X' ? game.playerXName : game.playerOName) || '?';
+return `\u{1F3C6} Завершена, победитель: ${winnerName}`;
+}
+if (game.status === STATUS_CANCELLED) {
+switch (game.endReason) {
+case 'opponent_disconnected': return '\u{1F4E1} Завершена: соперник не переподключился';
+case 'pause_expired': return '\u23F0 Завершена: истёк лимит паузы';
+case 'cancelled_by_player': return '\u{1F6D1} Завершена: отменена игроком';
+case 'account_deleted': return '\u{1F5D1}\uFE0F Завершена: аккаунт удалён';
+case 'account_banned': return '\u{1F6AB} Завершена: один из игроков заблокирован';
+case 'creator_dormant': return '\u{1F4A4} Завершена: создатель не заходил 30+ дней';
+default: return '\u26AA Завершена без результата';
+}
+}
+return getStatusText(game.status);
+}
+function statusLineFor(game) {
+if (game.status === STATUS_COMPLETED || game.status === STATUS_CANCELLED) {
+return finishedStatusLine(game);
+}
+return getStatusText(game.status);
+}
+function isGameStale(game, now) {
+const age = now - (game.createdAt || 0);
+if (game.status === STATUS_WAITING) {
+return age > WAITING_TIMEOUT;
+}
+if (game.status === STATUS_COMPLETED || game.status === STATUS_CANCELLED) {
+return game.endedAt && (now - game.endedAt) > FINISHED_GAME_TIMEOUT;
+}
+if (game.status === STATUS_PAUSED) {
+return game.pausedAt && (now - game.pausedAt) > PAUSE_MAX_MS;
+}
+if (game.status === STATUS_PLAYING) {
+const lastAct = game.turnStartTime || 0;
+return lastAct && (now - lastAct) > PLAYING_INACTIVE_TIMEOUT;
+}
+return false;
+}
+function isCardStale(card, now) {
+if (card.status === STATUS_WAITING) {
+const age = now - (card.createdAt || 0);
+return age > WAITING_TIMEOUT;
+}
+if (card.status === STATUS_COMPLETED || card.status === STATUS_CANCELLED) {
+return card.endedAt && (now - card.endedAt) > FINISHED_GAME_TIMEOUT;
+}
+if (card.status === STATUS_PAUSED) {
+return card.pausedAt && (now - card.pausedAt) > PAUSE_MAX_MS;
+}
+return false;
+}
+function startLobbyCleanup() {
+stopLobbyCleanup();
+lobbyCleanupInterval = setInterval(() => {
+if (document.getElementById('lobby-screen').classList.contains('active')) {
+processLobbyList(false);
+}
+}, LOBBY_CLEANUP_INTERVAL);
+}
+function stopLobbyCleanup() {
+if (lobbyCleanupInterval) {
+clearInterval(lobbyCleanupInterval);
+lobbyCleanupInterval = null;
+}
+}
+function updateLobbyCountdowns() {
+const list = document.getElementById('games-list');
+if (!list) return;
+const now = Date.now();
+list.querySelectorAll('.lobby-countdown').forEach((el) => {
+const expiry = parseInt(el.getAttribute('data-expiry'), 10);
+if (!expiry) return;
+const rem = expiry - now;
+el.textContent = '\u23F3 ' + formatTime(Math.max(0, rem));
+});
+}
+function startLobbyCountdowns() {
+stopLobbyCountdowns();
+updateLobbyCountdowns();
+lobbyCountdownInterval = setInterval(updateLobbyCountdowns, LOBBY_COUNTDOWN_INTERVAL);
+}
+function stopLobbyCountdowns() {
+if (lobbyCountdownInterval) {
+clearInterval(lobbyCountdownInterval);
+lobbyCountdownInterval = null;
+}
+}
+function countdownHtmlFor(game) {
+if (game.status !== STATUS_WAITING || !game.createdAt) return '';
+const expiry = game.createdAt + WAITING_TIMEOUT;
+return ` • <span class="lobby-countdown" data-expiry="${expiry}">--:--</span>`;
+}
+function processLobbyList(force) {
+const list = document.getElementById('games-list');
+if (!list || !currentUser) return;
+const now = Date.now();
+const stale = lastLobbySnapshot.filter(({ game }) => isCardStale(game, now));
+if (stale.length > 0) {
+stale.forEach(({ id }) => {
+deleteDoc(doc(db, 'games', id)).catch(() => {});
+updateCatalog(rooms => removeRoom(rooms, id));
+deleteDoc(activityRef(id)).catch(() => {});
+});
+lastLobbySnapshot = lastLobbySnapshot.filter(({ game }) => !isCardStale(game, now));
+lobbyListDirty = true;
+}
+const myActive = [];
+const joinable = [];
+const ongoing = [];
+const finished = [];
+lastLobbySnapshot.forEach(({ id, game }) => {
+const isMyGame = game.playerX === currentUser.uid || game.playerO === currentUser.uid;
+const isFinished = (game.status === STATUS_COMPLETED || game.status === STATUS_CANCELLED);
+if (isFinished) {
+finished.push({ id, game, mine: isMyGame });
+if (isMyGame) {
+const flag = (game.playerX === currentUser.uid) ? 'statsAppliedX' : 'statsAppliedO';
+if (!game[flag]) {
+applyMyStatsForGame(id, game);
+}
+}
+return;
+}
+if (game.status !== STATUS_WAITING && game.status !== STATUS_PLAYING &&
+game.status !== STATUS_PAUSED) return;
+if (isMyGame) {
+myActive.push({ id, game });
+} else if (game.status === STATUS_WAITING) {
+joinable.push({ id, game });
+} else {
+ongoing.push({ id, game });
+}
+});
+const sortByFreshness = (a, b) => {
+const sa = isStaleGame(a.game, now) ? 1 : 0;
+const sb = isStaleGame(b.game, now) ? 1 : 0;
+if (sa !== sb) return sa - sb;
+if (sa === 1) return lastMoveAt(a.game) - lastMoveAt(b.game);
+return lastMoveAt(b.game) - lastMoveAt(a.game);
+};
+myActive.sort(sortByFreshness);
+ongoing.sort(sortByFreshness);
+joinable.sort((a, b) => (b.game.createdAt || 0) - (a.game.createdAt || 0));
+finished.sort((a, b) => (b.game.endedAt || 0) - (a.game.endedAt || 0));
+const hasActiveGame = myActive.some(({ game }) =>
+game.status === STATUS_PAUSED || game.status === STATUS_PLAYING);
+adjustCreateButtonForActive(hasActiveGame);
+if (!force && !lobbyListDirty) {
+updateLobbyCountdowns();
+return;
+}
+lobbyListDirty = false;
+list.innerHTML = '';
+if (myActive.length === 0 && joinable.length === 0 &&
+ongoing.length === 0 && finished.length === 0) {
+list.innerHTML = '<div class="lobby-empty">Нет игр.<br>Создайте игру!</div>';
+return;
+}
+const addGroupTitle = (text) => {
+const t = document.createElement('div');
+t.className = 'lobby-group-title';
+t.textContent = text;
+list.appendChild(t);
+};
+if (myActive.length > 0) {
+addGroupTitle('\u{1F464} Ваши игры');
+myActive.forEach(({ id, game }) => {
+const playerName = escapeHtml(game.playerXName || game.playerOName);
+const roomName = escapeHtml(game.roomName || '???');
+const statusText = statusLineFor(game);
+const canEnter = (game.status === STATUS_PLAYING || game.status === STATUS_PAUSED);
+const countdownHtml = countdownHtmlFor(game);
+const item = document.createElement('div');
+item.className = 'lobby-item my-game';
+item.innerHTML = `
+<div class="game-info">
+<div class="game-name">\u{1F3E0} ${roomName}</div>
+<div class="game-label">\u{1F464} ${playerName} (ваша игра)</div>
+<div class="game-status">${statusText}${countdownHtml}</div>
+</div>
+${canEnter ? `<button onclick="enterMyGame('${id}')">Войти</button>` : ''}
+`;
+list.appendChild(item);
+});
+}
+if (joinable.length > 0) {
+addGroupTitle('\u{1F3AE} Присоединиться');
+joinable.forEach(({ id, game }) => {
+const playerName = escapeHtml(game.playerXName || game.playerOName);
+const roomName = escapeHtml(game.roomName || '???');
+const statusText = statusLineFor(game);
+const countdownHtml = countdownHtmlFor(game);
+const item = document.createElement('div');
+item.className = 'lobby-item';
+item.innerHTML = `
+<div class="game-info">
+<div class="game-name">\u{1F3E0} ${roomName}</div>
+<div class="game-status">\u{1F464} ${playerName} • ${statusText}${countdownHtml}</div>
+</div>
+<button onclick="joinGame('${id}')">Играть</button>
+`;
+list.appendChild(item);
+});
+}
+if (ongoing.length > 0) {
+addGroupTitle('\u2694\uFE0F Идут сейчас');
+ongoing.forEach(({ id, game }) => {
+const roomName = escapeHtml(game.roomName || '???');
+const statusText = statusLineFor(game);
+const playerXName = escapeHtml(game.playerXName || '?');
+const playerOName = escapeHtml(game.playerOName || '?');
+const item = document.createElement('div');
+item.className = 'lobby-item';
+item.innerHTML = `
+<div class="game-info">
+<div class="game-name">\u{1F3E0} ${roomName}</div>
+<div class="game-status">\u{1F464} ${playerXName} • ${statusText} • \u{1F464} ${playerOName}</div>
+</div>
+`;
+list.appendChild(item);
+});
+}
+if (finished.length > 0) {
+addGroupTitle('\u{1F3C1} Завершённые');
+finished.forEach(({ id, game, mine }) => {
+const roomName = escapeHtml(game.roomName || '???');
+const statusText = statusLineFor(game);
+const playerXName = escapeHtml(game.playerXName || '?');
+const playerOName = escapeHtml(game.playerOName || '?');
+const item = document.createElement('div');
+item.className = 'lobby-item finished-game' + (mine ? ' my-game' : '');
+item.innerHTML = `
+<div class="game-info">
+<div class="game-name">\u{1F3E0} ${roomName}</div>
+<div class="game-status">\u{1F464} ${playerXName} • ${statusText} • \u{1F464} ${playerOName}${mine ? ' (ваша игра)' : ''}</div>
+</div>
+`;
+list.appendChild(item);
+});
+}
+updateLobbyCountdowns();
+}
+function listenToAvailableGames() {
+if (gamesListener) gamesListener();
+gamesListener = onSnapshot(catalogRef(), (snap) => {
+markConnectionOk(true);
+if (!snap.exists()) {
+lastLobbySnapshot = [];
+lobbyListDirty = true;
+const listEl = document.getElementById('games-list');
+if (listEl) listEl.innerHTML = '<div class="lobby-empty">Загрузка...</div>';
+rebuildCatalog();
+return;
+}
+const data = snap.data();
+const rooms = Array.isArray(data.rooms) ? data.rooms : [];
+lastLobbySnapshot = rooms.map(r => ({ id: r.id, game: r }));
+lobbyListDirty = true;
+processLobbyList(true);
+}, (err) => {
+markConnectionError();
+if (err && err.code === 'permission-denied') {
+showMessage('lobby-error', '\u26A0\uFE0F Нет доступа к каталогу лобби. Добавьте правило для /meta в консоли Firebase.');
+}
+});
+}
+window.enterMyGame = async function(gameId) {
+try {
+const snap = await getDoc(doc(db, 'games', gameId));
+markConnectionOk(false);
+if (!snap.exists()) {
+updateCatalog(rooms => removeRoom(rooms, gameId));
+return showMessage('lobby-error', 'Игра не найдена и удалена из списка');
+}
+const game = snap.data();
+if (game.status !== STATUS_PLAYING && game.status !== STATUS_PAUSED) {
+upsertCatalogFromGame(gameId, game);
+return showMessage('lobby-error', 'Игра недоступна');
+}
+currentGame = { id: gameId, ...game };
+myActiveGameId = gameId;
+startGame(false);
+} catch (error) {
+markConnectionError();
+showMessage('lobby-error', 'Ошибка: ' + error.message);
+}
+}
+window.joinGame = async function(gameId) {
+try {
+if (myCreatedGameId) {
+await closeMyGame();
+}
+const activeCount = await countMyActiveGames();
+if (activeCount >= MAX_ACTIVE_GAMES) {
+return showMessage('lobby-error', '\u26A0\uFE0F У вас 3 неочищенные игры. Закройте старые игры или дождитесь автоочистки.');
+}
+const gameRef = doc(db, 'games', gameId);
+let joinResult = null;
+try {
+joinResult = await runTransaction(db, async (tx) => {
+const snap = await tx.get(gameRef);
+if (!snap.exists()) throw new Error('GAME_NOT_FOUND');
+const g = snap.data();
+if (g.status !== STATUS_WAITING) throw new Error('ALREADY_STARTED');
+let slot;
+if (!g.playerX) slot = 'playerX';
+else if (!g.playerO) slot = 'playerO';
+else throw new Error('GAME_FULL');
+const now = Date.now();
+const updateData = {
+status: STATUS_PLAYING,
+[slot]: currentUser.uid,
+[slot + 'Name']: currentUser.displayName,
+gameStartTime: now,
+turnStartTime: now
+};
+tx.update(gameRef, updateData);
+return { updateData, merged: { ...g, ...updateData } };
+});
+} catch (txErr) {
+if (txErr.message === 'ALREADY_STARTED') {
+return showMessage('lobby-error', 'Игра уже началась');
+}
+if (txErr.message === 'GAME_FULL') {
+return showMessage('lobby-error', 'В игре уже два игрока');
+}
+if (txErr.message === 'GAME_NOT_FOUND') {
+updateCatalog(rooms => removeRoom(rooms, gameId));
+return showMessage('lobby-error', 'Игра не найдена и удалена из списка');
+}
+throw txErr;
+}
+markConnectionOk(false);
+upsertCatalogFromGame(gameId, joinResult.merged);
+try {
+const slot = joinResult.updateData.playerX ? 'playerXLastActivity' : 'playerOLastActivity';
+await setDoc(activityRef(gameId), { [slot]: Date.now() }, { merge: true });
+} catch (e) {
+console.warn('Не удалось создать/обновить документ активности при входе:', e);
+}
+currentGame = { id: gameId, ...joinResult.merged };
+myActiveGameId = gameId;
+startGame(true);
+} catch (error) {
+markConnectionError();
+showMessage('lobby-error', 'Ошибка: ' + error.message);
+}
+}
+window.requestPause = async function() {
+if (!currentGame?.id) return;
+if (currentGame.status === STATUS_PLAYING) {
+try {
+await updateDoc(doc(db, 'games', currentGame.id), {
+pauseRequestedBy: currentUser.uid,
+pauseRequestedByName: currentUser.displayName
+});
+} catch (e) {
+console.warn('Не удалось запросить паузу:', e);
+}
+return;
+}
+if (currentGame.status === STATUS_PAUSED) {
+const myS = currentUser.uid === currentGame.playerX ? 'X' : 'O';
+const myFlag = myS === 'X' ? currentGame.pauseResumeX : currentGame.pauseResumeO;
+if (!myFlag) return;
+const myFlagField = myS === 'X' ? 'pauseResumeX' : 'pauseResumeO';
+try {
+await updateDoc(doc(db, 'games', currentGame.id), { [myFlagField]: false });
+} catch (e) {
+console.warn('Не удалось вернуть готовность паузы:', e);
+}
+}
+}
+window.cancelPauseRequest = async function() {
+if (!currentGame?.id) return;
+try {
+await updateDoc(doc(db, 'games', currentGame.id), {
+pauseRequestedBy: null,
+pauseRequestedByName: null
+});
+} catch (e) {
+console.warn('Не удалось отменить запрос паузы:', e);
+}
+}
+window.acceptPause = async function() {
+if (!currentGame?.id || currentGame.status !== STATUS_PLAYING) return;
+const gameRef = doc(db, 'games', currentGame.id);
+try {
+await runTransaction(db, async (tx) => {
+const snap = await tx.get(gameRef);
+if (!snap.exists()) throw new Error('GAME_NOT_FOUND');
+const g = snap.data();
+if (g.status !== STATUS_PLAYING) throw new Error('NOT_PLAYING');
+const now = Date.now();
+const remaining = Math.max(0, TURN_AUTO_END_TIME - (now - (g.turnStartTime || now)));
+tx.update(gameRef, {
+status: STATUS_PAUSED,
+pausedAt: now,
+turnRemainingFrozen: remaining,
+pauseRequestedBy: null,
+pauseRequestedByName: null,
+pauseResumeX: false,
+pauseResumeO: false,
+pauseCount: (g.pauseCount || 0) + 1
+});
+});
+upsertCatalogFromGame(currentGame.id, {
+...currentGame,
+status: STATUS_PAUSED,
+pausedAt: Date.now()
+});
+} catch (e) {
+console.warn('Пауза не принята:', e && e.message ? e.message : e);
+}
+}
+window.declinePause = async function() {
+if (!currentGame?.id) return;
+try {
+await updateDoc(doc(db, 'games', currentGame.id), {
+pauseRequestedBy: null,
+pauseRequestedByName: null
+});
+} catch (e) {
+console.warn('Не удалось отклонить паузу:', e);
+}
+}
+window.pressResume = async function() {
+if (!currentGame?.id || currentGame.status !== STATUS_PAUSED) return;
+const myS = currentUser.uid === currentGame.playerX ? 'X' : 'O';
+const myFlagField = myS === 'X' ? 'pauseResumeX' : 'pauseResumeO';
+try {
+await updateDoc(doc(db, 'games', currentGame.id), { [myFlagField]: true });
+} catch (e) {
+console.warn('Не удалось отметить готовность к продолжению:', e);
+}
+}
+async function doResumeGame(now) {
+const frozen = currentGame.turnRemainingFrozen != null ? currentGame.turnRemainingFrozen : TURN_AUTO_END_TIME;
+const newTurnStart = now - (TURN_AUTO_END_TIME - frozen);
+const newPausedTotal = (currentGame.pausedTotalMs || 0) + (now - (currentGame.pausedAt || now));
+try {
+await updateDoc(doc(db, 'games', currentGame.id), {
+status: STATUS_PLAYING,
+turnStartTime: newTurnStart,
+pausedTotalMs: newPausedTotal,
+pausedAt: null,
+turnRemainingFrozen: null,
+pauseResumeX: false,
+pauseResumeO: false
+});
+upsertCatalogFromGame(currentGame.id, {
+...currentGame,
+status: STATUS_PLAYING,
+pausedAt: null
+});
+} catch (e) {
+console.warn('Не удалось возобновить игру:', e);
+}
+}
+window.cancelPausedGame = async function() {
+if (!currentGame?.id || currentGame.status !== STATUS_PAUSED) return;
+const gameRef = doc(db, 'games', currentGame.id);
+try {
+await runTransaction(db, async (tx) => {
+const snap = await tx.get(gameRef);
+if (!snap.exists()) throw new Error('GAME_NOT_FOUND');
+const g = snap.data();
+if (g.status !== STATUS_PAUSED) throw new Error('NOT_PAUSED');
+tx.update(gameRef, {
+status: STATUS_CANCELLED,
+endReason: 'cancelled_by_player',
+endedAt: Date.now()
+});
+});
+upsertCatalogFromGame(currentGame.id, {
+...currentGame,
+status: STATUS_CANCELLED,
+endReason: 'cancelled_by_player',
+endedAt: Date.now()
+});
+deleteDoc(activityRef(currentGame.id)).catch(() => {});
+} catch (e) {
+console.warn('Отмена игры не выполнена:', e && e.message ? e.message : e);
+}
+}
+async function endGameDuePauseExpired() {
+if (!currentGame?.id) return;
+const gameRef = doc(db, 'games', currentGame.id);
+try {
+await runTransaction(db, async (tx) => {
+const snap = await tx.get(gameRef);
+if (!snap.exists()) throw new Error('GAME_NOT_FOUND');
+const g = snap.data();
+if (g.status !== STATUS_PAUSED) throw new Error('NOT_PAUSED');
+if (Date.now() - (g.pausedAt || 0) < PAUSE_MAX_MS) throw new Error('NOT_EXPIRED');
+tx.update(gameRef, {
+status: STATUS_CANCELLED,
+endReason: 'pause_expired',
+endedAt: Date.now()
+});
+});
+upsertCatalogFromGame(currentGame.id, {
+...currentGame,
+status: STATUS_CANCELLED,
+endReason: 'pause_expired',
+endedAt: Date.now()
+});
+deleteDoc(activityRef(currentGame.id)).catch(() => {});
+} catch (e) {
+console.warn('Завершение по лимиту паузы не выполнено:', e && e.message ? e.message : e);
+}
+}
+function updatePauseUI() {
+const reqBanner = document.getElementById('pause-request-banner');
+const reqText = document.getElementById('pause-request-text');
+const reqButtons = document.getElementById('pause-request-buttons');
+const resumeBanner = document.getElementById('resume-notice-banner');
+const resumeText = document.getElementById('resume-notice-text');
+const pauseBanner = document.getElementById('pause-banner');
+const pauseLimit = document.getElementById('pause-limit-text');
+const pauseState = document.getElementById('pause-state-text');
+const pauseButtons = document.getElementById('pause-buttons');
+const pauseBtn = document.getElementById('pause-btn');
+const surrenderBtn = document.getElementById('surrender-btn');
+const disconnectBanner = document.getElementById('disconnect-banner');
+if (!reqBanner || !pauseBanner) return;
+const status = currentGame?.status;
+const now = Date.now();
+reqBanner.classList.remove('active');
+pauseBanner.classList.remove('active');
+resumeBanner.classList.remove('active');
+if (status === STATUS_PLAYING) {
+if (pauseBtn) { pauseBtn.style.display = ''; pauseBtn.textContent = '\u23F8\uFE0F Пауза'; }
+if (surrenderBtn) surrenderBtn.style.display = '';
+if (currentGame.pauseRequestedBy) {
+if (currentGame.pauseRequestedBy === currentUser.uid) {
+reqText.textContent = '\u23F8\uFE0F Запрос паузы отправлен. Ожидание решения соперника...';
+reqButtons.innerHTML = `<button class="secondary" onclick="cancelPauseRequest()">Отменить запрос</button>`;
+} else {
+reqText.textContent = `\u23F8\uFE0F Игрок ${currentGame.pauseRequestedByName || 'соперник'} предлагает поставить игру на паузу`;
+reqButtons.innerHTML = `
+<button onclick="acceptPause()">Согласен</button>
+<button class="secondary" onclick="declinePause()">Отклонить</button>
+`;
+}
+reqBanner.classList.add('active');
+}
+} else if (status === STATUS_PAUSED) {
+if (pauseBtn) { pauseBtn.style.display = ''; pauseBtn.textContent = '\u23F8\uFE0F Вернуть паузу'; }
+if (surrenderBtn) surrenderBtn.style.display = 'none';
+disconnectBanner.classList.remove('active');
+const myS = currentUser.uid === currentGame.playerX ? 'X' : 'O';
+const myFlag = myS === 'X' ? currentGame.pauseResumeX : currentGame.pauseResumeO;
+const oppFlag = myS === 'X' ? currentGame.pauseResumeO : currentGame.pauseResumeX;
+const oppName = myS === 'X' ? currentGame.playerOName : currentGame.playerXName;
+if (oppFlag && !myFlag && resumeBanner) {
+resumeText.textContent = `\u25B6\uFE0F Игрок ${oppName || 'соперник'} продолжил игру! Нажмите «Продолжить», чтобы присоединиться.`;
+resumeBanner.classList.add('active');
+}
+const pauseAge = now - (currentGame.pausedAt || now);
+const pauseRemaining = PAUSE_MAX_MS - pauseAge;
+if (pauseRemaining <= 0) {
+endGameDuePauseExpired();
+return;
+}
+pauseLimit.textContent = `До авто-отмены игры: ${formatTime(pauseRemaining)}`;
+if (pauseRemaining < PAUSE_WARN_MS) {
+pauseLimit.classList.add('warn');
+pauseLimit.textContent += ' — меньше суток!';
+} else {
+pauseLimit.classList.remove('warn');
+}
+if (myFlag) {
+pauseState.textContent = 'Вы готовы продолжить. Ожидание соперника... (кнопка «Вернуть паузу» внизу отменит готовность)';
+pauseButtons.innerHTML = `
+<button class="danger" onclick="cancelPausedGame()">Отменить игру</button>
+`;
+} else {
+pauseState.textContent = 'Оба игрока должны нажать «Продолжить» для возобновления.';
+pauseButtons.innerHTML = `
+<button onclick="pressResume()">\u25B6\uFE0F Продолжить</button>
+<button class="danger" onclick="cancelPausedGame()">Отменить игру</button>
+`;
+}
+pauseBanner.classList.add('active');
+} else {
+if (pauseBtn) pauseBtn.style.display = 'none';
+if (surrenderBtn) surrenderBtn.style.display = 'none';
+}
+refreshCanvasCursor();
+}
+function startUndoWindow(cellKey, prevRevealed, prevLastMove, countAfter, version) {
+clearUndoWindow();
+if (undoUsedThisCycle) return;
+const btn = document.getElementById('undo-btn');
+if (!btn) return;
+undoInfo = { cellKey, prevRevealed, prevLastMove, countAfter, version, deadline: Date.now() + UNDO_WINDOW_MS };
+btn.style.display = '';
+const tick = () => {
+if (!undoInfo) return;
+const rem = Math.max(0, Math.ceil((undoInfo.deadline - Date.now()) / 1000));
+btn.textContent = `\u21A9\uFE0F Отменить ход (${rem}) [Backspace]`;
+};
+tick();
+undoLabelTimer = setInterval(tick, 200);
+undoHideTimer = setTimeout(() => clearUndoWindow(), UNDO_WINDOW_MS);
+}
+function clearUndoWindow() {
+if (undoHideTimer) { clearTimeout(undoHideTimer); undoHideTimer = null; }
+if (undoLabelTimer) { clearInterval(undoLabelTimer); undoLabelTimer = null; }
+undoInfo = null;
+const btn = document.getElementById('undo-btn');
+if (btn) btn.style.display = 'none';
+}
+window.undoMove = async function() {
+if (!undoInfo || !currentGame || currentGame.status !== STATUS_PLAYING) return;
+if (moveInFlightPromise) {
+try { await moveInFlightPromise; } catch (e) {}
+}
+if (!undoInfo || !currentGame || currentGame.status !== STATUS_PLAYING) return;
+const myS = currentUser.uid === gameState.playerX ? 'X' : 'O';
+const info = undoInfo;
+const gameRef = doc(db, 'games', currentGame.id);
+try {
+await runTransaction(db, async (tx) => {
+const snap = await tx.get(gameRef);
+if (!snap.exists()) throw new Error('GAME_NOT_FOUND');
+const g = snap.data();
+if (g.status !== STATUS_PLAYING) throw new Error('NOT_PLAYING');
+if ((g.moveVersion || 0) !== info.version) throw new Error('VERSION_MISMATCH');
+if (!g.moves || !g.moves[info.cellKey]) throw new Error('MOVE_NOT_FOUND');
+const moves = { ...g.moves };
+delete moves[info.cellKey];
+tx.update(gameRef, {
+moves: moves,
+revealed: info.prevRevealed,
+currentTurn: myS,
+lastMove: info.prevLastMove,
+moveVersion: (g.moveVersion || 0) + 1,
+turnStartTime: Date.now()
+});
+});
+} catch (e) {
+console.warn('Отмена хода отклонена:', e && e.message ? e.message : e);
+clearUndoWindow();
+return;
+}
+clearUndoWindow();
+undoUsedThisCycle = true;
+delete gameState.moves[info.cellKey];
+realRevealedSet = new Set(info.prevRevealed);
+gameState.revealed = new Set(realRevealedSet);
+gameState.currentTurn = myS;
+gameState.lastMove = info.prevLastMove;
+invalidateBounds();
+lastKnownMoveCount = Object.keys(gameState.moves).length;
+lastHighlightedMove = info.prevLastMove;
+highlightStartTime = 0;
+}
+function clearNudgeProbe() {
+if (nudgeProbeTimer) { clearTimeout(nudgeProbeTimer); nudgeProbeTimer = null; }
+nudgeProbe = null;
+}
+function forceReconnectMode() {
+forcedDisconnect = true;
+opponentDisconnected = true;
+if (!disconnectStartTime) disconnectStartTime = Date.now();
+checkOpponentStatus();
+}
+window.nudgeOpponent = async function() {
+if (!currentGame || currentGame.status !== STATUS_PLAYING) return;
+const myS = currentUser.uid === gameState.playerX ? 'X' : 'O';
+if (gameState.currentTurn === myS) return;
+const now = Date.now();
+if (now < nudgeCooldownUntil) return;
+nudgeCooldownUntil = now + NUDGE_COOLDOWN_MS;
+const count = (currentGame.nudgeCount || 0) + 1;
+try {
+await updateDoc(doc(db, 'games', currentGame.id), {
+nudgeBy: currentUser.uid,
+nudgeByName: currentUser.displayName,
+nudgeCount: count,
+nudgeAt: now,
+nudgePongAt: null
+});
+} catch (e) {
+console.warn('Пинок не отправлен:', e);
+return;
+}
+const oppAct = myS === 'X' ? gameState.playerOLastActivity : gameState.playerXLastActivity;
+const stale = !oppAct || (now - oppAct) > NUDGE_STALE_NOW_MS;
+if (stale) {
+forceReconnectMode();
+return;
+}
+clearNudgeProbe();
+nudgeProbe = { at: now };
+nudgeProbeTimer = setTimeout(() => {
+if (!nudgeProbe) return;
+const pong = currentGame && currentGame.nudgePongAt;
+if (!pong || pong < nudgeProbe.at) {
+clearNudgeProbe();
+forceReconnectMode();
+} else {
+clearNudgeProbe();
+}
+}, NUDGE_PONG_TIMEOUT);
+}
+function updateNudgeButton() {
+const btn = document.getElementById('nudge-btn');
+if (!btn) return;
+if (!currentGame || currentGame.status !== STATUS_PLAYING) {
+if (lastNudgeUi !== 'hidden') { lastNudgeUi = 'hidden'; btn.style.display = 'none'; }
+return;
+}
+if (undoInfo) {
+if (lastNudgeUi !== 'hidden-undo') {
+lastNudgeUi = 'hidden-undo';
+btn.style.display = 'none';
+}
+return;
+}
+const myS = currentUser.uid === gameState.playerX ? 'X' : 'O';
+if (gameState.currentTurn === myS) {
+if (lastNudgeUi !== 'hidden') { lastNudgeUi = 'hidden'; btn.style.display = 'none'; }
+return;
+}
+const now = Date.now();
+const rem = nudgeCooldownUntil - now;
+const label = rem > 0 ? `\u{1F9B6} Пнуть (${Math.ceil(rem / 1000)})` : '\u{1F9B6} Пнуть';
+const disabled = rem > 0;
+const state = (disabled ? 'd' : 'e') + label;
+if (state === lastNudgeUi) return;
+lastNudgeUi = state;
+btn.style.display = '';
+btn.disabled = disabled;
+btn.textContent = label;
+}
+function startGame(withLottery) {
+gameEndHandled = false;
+stopCreatorHeartbeat();
+lotteryRequested = !!withLottery;
+if (currentGame?.id) {
+saveActiveGameId(currentGame.id);
+myActiveGameId = currentGame.id;
+}
+showScreen('game-screen');
+initGame();
+listenToGame(currentGame.id);
+listenToActivity(currentGame.id);
+}
+function listenToActivity(gameId) {
+if (activityListener) activityListener();
+const ref = activityRef(gameId);
+activityListener = onSnapshot(ref, (docSnap) => {
+if (!docSnap.exists()) return;
+const act = docSnap.data();
+if (act.playerXLastActivity && (!gameState.playerXLastActivity || act.playerXLastActivity > gameState.playerXLastActivity)) {
+gameState.playerXLastActivity = act.playerXLastActivity;
+}
+if (act.playerOLastActivity && (!gameState.playerOLastActivity || act.playerOLastActivity > gameState.playerOLastActivity)) {
+gameState.playerOLastActivity = act.playerOLastActivity;
+}
+}, (err) => {
+console.warn('Ошибка подписки на активность:', err);
+});
+}
+function listenToGame(gameId) {
+if (gameListener) gameListener();
+const gameRef = doc(db, 'games', gameId);
+gameListener = onSnapshot(gameRef, async (docSnap) => {
+markConnectionOk(true);
+if (!docSnap.exists()) {
+gameEndHandled = false;
+showResultModal('\u26A0\uFE0F Игра была удалена.');
+if (gameListener) { gameListener(); gameListener = null; }
+return;
+}
+const game = docSnap.data();
+currentGame = { id: gameId, ...game };
+if (game.status === STATUS_PLAYING && !canvas) startGame(false);
+if (game.status !== STATUS_PLAYING && undoInfo) {
+clearUndoWindow();
+}
+if (game.status !== STATUS_PLAYING && lottery) {
+lottery = null;
+if (lotteryRevealTimer) { clearTimeout(lotteryRevealTimer); lotteryRevealTimer = null; }
+if (!lotteryRevealed) {
+lotteryRevealed = true;
+const myS = currentUser.uid === game.playerX ? 'X' : 'O';
+setHeaderSymbolPlain(myS);
+}
+}
+if (game.nudgeAt && game.nudgeAt !== lastNudgeSeenAt) {
+lastNudgeSeenAt = game.nudgeAt;
+if (game.nudgeBy && game.nudgeBy !== currentUser.uid) {
+const text = nudgeTextFor(game.nudgeCount || 0, game.nudgeByName || 'соперник');
+showTopNotification(text, true);
+playBellSound();
+if (game.nudgeAt !== lastPongedAt) {
+lastPongedAt = game.nudgeAt;
+updateDoc(doc(db, 'games', gameId), { nudgePongAt: Date.now() }).catch(() => {});
+}
+}
+}
+if (nudgeProbe && game.nudgePongAt && game.nudgePongAt >= nudgeProbe.at) {
+clearNudgeProbe();
+}
+if (game.status === STATUS_PAUSED) {
+const myS = currentUser.uid === game.playerX ? 'X' : 'O';
+const oppFlag = myS === 'X' ? !!game.pauseResumeO : !!game.pauseResumeX;
+if (oppFlag && !lastOppResumeFlag) {
+playBellSound();
+}
+lastOppResumeFlag = oppFlag;
+} else {
+lastOppResumeFlag = false;
+}
+if (game.status === STATUS_PAUSED && game.pauseResumeX && game.pauseResumeO) {
+doResumeGame(Date.now());
+}
+if (game.status === STATUS_PLAYING || game.status === STATUS_PAUSED ||
+game.status === STATUS_COMPLETED) {
+gameState.moves = game.moves || {};
+realRevealedSet = new Set(game.revealed || []);
+gameState.revealed = new Set(realRevealedSet);
+if (document.getElementById('dbg-reveal').checked) addDebugRevealCells();
+invalidateBounds();
+gameState.currentTurn = game.currentTurn;
+gameState.playerX = game.playerX;
+gameState.playerO = game.playerO;
+gameState.lastMove = game.lastMove;
+gameState.gameStartTime = game.gameStartTime;
+gameState.turnStartTime = game.turnStartTime;
+gameState.winningCells = game.winningCells || null;
+gameState.winTime = game.winTime || null;
+gameState.pausedAt = game.pausedAt || null;
+gameState.turnRemainingFrozen = game.turnRemainingFrozen != null ? game.turnRemainingFrozen : null;
+gameState.pausedTotalMs = game.pausedTotalMs || 0;
+gameState.pauseRequestedBy = game.pauseRequestedBy || null;
+gameState.pauseRequestedByName = game.pauseRequestedByName || null;
+gameState.pauseResumeX = !!game.pauseResumeX;
+gameState.pauseResumeO = !!game.pauseResumeO;
+if (game.playerXLastActivity && (!gameState.playerXLastActivity || game.playerXLastActivity > gameState.playerXLastActivity)) {
+gameState.playerXLastActivity = game.playerXLastActivity;
+}
+if (game.playerOLastActivity && (!gameState.playerOLastActivity || game.playerOLastActivity > gameState.playerOLastActivity)) {
+gameState.playerOLastActivity = game.playerOLastActivity;
+}
+if (optimisticMove && !gameState.moves[optimisticMove.cellKey]) {
+gameState.moves[optimisticMove.cellKey] = optimisticMove.mySymbol;
+for (const nk of optimisticMove.revealedAdded) {
+gameState.revealed.add(nk);
+realRevealedSet.add(nk);
+}
+gameState.currentTurn = OTHER[optimisticMove.mySymbol];
+gameState.lastMove = optimisticMove.cellKey;
+invalidateBounds();
+}
+const currentMoveCount = Object.keys(gameState.moves).length;
+if (currentMoveCount > lastKnownMoveCount && game.lastMove) {
+const mySymbol = currentUser.uid === gameState.playerX ? 'X' : 'O';
+if (gameState.moves[game.lastMove] !== mySymbol) {
+const [mx, my] = game.lastMove.split(',').map(Number);
+smoothCenterOn(mx, my);
+lastHighlightedMove = game.lastMove;
+highlightStartTime = Date.now();
+undoUsedThisCycle = false;
+}
+}
+lastKnownMoveCount = currentMoveCount;
+if (undoInfo && currentMoveCount !== undoInfo.countAfter) {
+clearUndoWindow();
+}
+updateGameUI();
+updatePauseUI();
+}
+if (game.status === STATUS_COMPLETED && game.winner && !gameEndHandled) {
+upsertCatalogFromGame(gameId, game);
+await applyMyStatsForGame(gameId, cardFromGame(gameId, game));
+await loadMyStats();
+await loadGameHeaderStats();
+endGame(game.winner, game.endReason);
+} else if (game.status === STATUS_CANCELLED && !gameEndHandled) {
+upsertCatalogFromGame(gameId, game);
+await applyMyStatsForGame(gameId, cardFromGame(gameId, game));
+await loadMyStats();
+await loadGameHeaderStats();
+endGame(null, game.endReason);
+}
+}, (err) => { markConnectionError(); });
+}
+function initGame() {
+canvas = document.getElementById('gameCanvas');
+ctx = canvas.getContext('2d');
+resizeCanvas();
+lastKnownMoveCount = Object.keys(currentGame.moves || {}).length;
+if (!canvasListenersAttached) {
+canvas.addEventListener('wheel', handleWheel, { passive: false });
+canvas.addEventListener('pointerdown', handlePointerDown);
+canvas.addEventListener('pointermove', handlePointerMove);
+canvas.addEventListener('pointerup', handlePointerUp);
+canvas.addEventListener('pointercancel', handlePointerLeave);
+canvas.addEventListener('pointerleave', handlePointerLeave);
+canvas.addEventListener('pointerenter', handlePointerEnter);
+canvas.addEventListener('contextmenu', handleContextMenu);
+canvasListenersAttached = true;
+}
+gameState.moves = currentGame.moves || {};
+realRevealedSet = new Set(currentGame.revealed || []);
+gameState.revealed = new Set(realRevealedSet);
+if (document.getElementById('dbg-reveal').checked) addDebugRevealCells();
+gameState.currentTurn = currentGame.currentTurn;
+gameState.playerX = currentGame.playerX;
+gameState.playerO = currentGame.playerO;
+gameState.gameStartTime = currentGame.gameStartTime;
+gameState.turnStartTime = currentGame.turnStartTime;
+gameState.winningCells = currentGame.winningCells || null;
+gameState.winTime = currentGame.winTime || null;
+gameState.playerXLastActivity = currentGame.playerXLastActivity || null;
+gameState.playerOLastActivity = currentGame.playerOLastActivity || null;
+gameState.pausedAt = currentGame.pausedAt || null;
+gameState.turnRemainingFrozen = currentGame.turnRemainingFrozen != null ? currentGame.turnRemainingFrozen : null;
+gameState.pausedTotalMs = currentGame.pausedTotalMs || 0;
+gameState.pauseRequestedBy = currentGame.pauseRequestedBy || null;
+gameState.pauseRequestedByName = currentGame.pauseRequestedByName || null;
+gameState.pauseResumeX = !!currentGame.pauseResumeX;
+gameState.pauseResumeO = !!currentGame.pauseResumeO;
+lastOppResumeFlag = false;
+crosshairX = null;
+crosshairY = null;
+lastMouseAt = 0;
+renderErrorLogged = false;
+optimisticMove = null;
+moveInFlightPromise = null;
+clearUndoWindow();
+undoUsedThisCycle = false;
+clearNudgeProbe();
+nudgeCooldownUntil = 0;
+lastNudgeSeenAt = currentGame.nudgeAt || 0;
+lastPongedAt = 0;
+lastReminderTurn = 0;
+forcedDisconnect = false;
+lottery = null;
+lotteryRevealed = false;
+if (lotteryRevealTimer) { clearTimeout(lotteryRevealTimer); lotteryRevealTimer = null; }
+if (lotteryRequested) {
+lotteryRequested = false;
+const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (!reduced && currentGame && currentUser) {
+const mySymbol = currentUser.uid === currentGame.playerX ? 'X' : 'O';
+lottery = {
+startTime: Date.now(),
+mySymbol: mySymbol
+};
+lotteryRevealTimer = setTimeout(() => {
+lotteryRevealTimer = null;
+if (lottery && !lotteryRevealed &&
+currentGame && currentGame.status === STATUS_PLAYING) {
+lotteryRevealed = true;
+revealHeaderSymbol(mySymbol);
+showTopNotification(`\u{1F3AF} Вы играете за ${mySymbol}!`, false);
+}
+}, LOTTERY_BRAKE_END);
+} else {
+lotteryRevealed = true;
+}
+} else {
+lotteryRevealed = true;
+}
+opponentDisconnected = false;
+disconnectStartTime = null;
+document.getElementById('disconnect-banner').classList.remove('active');
+document.getElementById('update-banner').classList.remove('active');
+updateRoomHeader();
+updatePauseUI();
+updateNudgeButton();
+refreshCanvasCursor();
+invalidateBounds();
+camera.x = 0.5; camera.y = 0.5; camera.zoom = 2;
+camera.targetX = 0.5; camera.targetY = 0.5; camera.targetZoom = 2;
+loadGameHeaderStats();
+startRenderLoop();
+startTimerUpdate();
+startActivityUpdate();
+startOpponentCheck();
+updateGameUI();
+}
+function handleContextMenu(e) {
+e.preventDefault();
+}
+function updateRoomHeader() {
+const roomNameEl = document.getElementById('room-name-text');
+const roomCreatorEl = document.getElementById('room-creator-text');
+if (!roomNameEl || !roomCreatorEl) return;
+const roomName = currentGame?.roomName || 'Неизвестная комната';
+const creatorName = currentGame?.createdByName || 'Неизвестный';
+roomNameEl.textContent = roomName;
+roomCreatorEl.textContent = creatorName;
+}
+function startRenderLoop() {
+if (animationFrameId) cancelAnimationFrame(animationFrameId);
+function render() {
+try {
+updateCamera();
+drawBoard();
+} catch (err) {
+if (!renderErrorLogged) {
+renderErrorLogged = true;
+console.error('Ошибка рендера (цикл продолжен):', err);
+}
+}
+animationFrameId = requestAnimationFrame(render);
+}
+render();
+}
+function updateCamera() {
+clampCameraToOpenArea();
+const lerp = 0.15;
+camera.x += (camera.targetX - camera.x) * lerp;
+camera.y += (camera.targetY - camera.y) * lerp;
+camera.zoom += (camera.targetZoom - camera.zoom) * lerp;
+}
+function smoothCenterOn(x, y) { camera.targetX = x + 0.5; camera.targetY = y + 0.5; }
+function getHoverCell() {
+if (!canvas || !hoverActive || !mousePixel) return null;
+if (!currentGame || currentGame.status !== STATUS_PLAYING) return null;
+const cx = canvas.width / 2, cy = canvas.height / 2;
+const size = CELL_SIZE * camera.zoom;
+const cellX = Math.floor((mousePixel.x - cx) / size + camera.x);
+const cellY = Math.floor((mousePixel.y - cy) / size + camera.y);
+return { x: cellX, y: cellY };
+}
+function canMoveInCell(cellX, cellY) {
+if (!currentGame || currentGame.status !== STATUS_PLAYING) return false;
+const mySymbol = currentUser.uid === gameState.playerX ? 'X' : 'O';
+if (gameState.currentTurn !== mySymbol) return false;
+const key = `${cellX},${cellY}`;
+if (!gameState.revealed.has(key)) return false;
+if (gameState.moves[key]) return false;
+return true;
+}
+function drawCrosshair() {
+if (!canvas || !ctx) {
+crosshairX = null;
+crosshairY = null;
+return;
+}
+const cx = canvas.width / 2, cy = canvas.height / 2;
+const size = CELL_SIZE * camera.zoom;
+const now = Date.now();
+const idle = now - lastMouseAt;
+let targetX, targetY;
+if (hoverActive && mousePixel) {
+if (idle < CROSSHAIR_SNAP_DELAY_MS) {
+targetX = mousePixel.x;
+targetY = mousePixel.y;
+} else {
+const cellX = Math.floor((mousePixel.x - cx) / size + camera.x);
+const cellY = Math.floor((mousePixel.y - cy) / size + camera.y);
+targetX = cx + (cellX + 0.5 - camera.x) * size;
+targetY = cy + (cellY + 0.5 - camera.y) * size;
+}
+} else {
+targetX = cx;
+targetY = cy;
+}
+if (crosshairX === null || crosshairY === null) {
+crosshairX = targetX;
+crosshairY = targetY;
+} else {
+crosshairX += (targetX - crosshairX) * CROSSHAIR_LERP;
+crosshairY += (targetY - crosshairY) * CROSSHAIR_LERP;
+if (Math.abs(targetX - crosshairX) < 0.5) crosshairX = targetX;
+if (Math.abs(targetY - crosshairY) < 0.5) crosshairY = targetY;
+}
+const canMove = hoverActive && mousePixel && canMoveInCell(
+Math.floor((mousePixel.x - cx) / size + camera.x),
+Math.floor((mousePixel.y - cy) / size + camera.y)
+);
+const color = canMove ? '#4caf50' : 'rgba(120, 120, 120, 0.65)';
+const r = Math.max(6, size * 0.22);
+const tick = Math.max(3, size * 0.12);
+ctx.save();
+ctx.strokeStyle = color;
+ctx.lineWidth = 2;
+ctx.beginPath();
+ctx.arc(crosshairX, crosshairY, r, 0, Math.PI * 2);
+ctx.stroke();
+ctx.beginPath();
+ctx.moveTo(crosshairX - r - tick, crosshairY); ctx.lineTo(crosshairX - r + tick / 2, crosshairY);
+ctx.moveTo(crosshairX + r - tick / 2, crosshairY); ctx.lineTo(crosshairX + r + tick, crosshairY);
+ctx.moveTo(crosshairX, crosshairY - r - tick); ctx.lineTo(crosshairX, crosshairY - r + tick / 2);
+ctx.moveTo(crosshairX, crosshairY + r - tick / 2); ctx.lineTo(crosshairX, crosshairY + r + tick);
+ctx.stroke();
+ctx.fillStyle = color;
+ctx.beginPath();
+ctx.arc(crosshairX, crosshairY, 1.5, 0, Math.PI * 2);
+ctx.fill();
+ctx.restore();
+}
+function refreshCanvasCursor() {
+if (!canvas) return;
+let val;
+if ((camera.isDragging && draggedFlag) || holdActive) {
+val = 'grabbing';
+} else if (!currentGame || currentGame.status !== STATUS_PLAYING) {
+val = 'default';
+} else {
+val = 'none';
+}
+if (val !== lastCursorStyle) {
+lastCursorStyle = val;
+canvas.style.cursor = val;
+}
+}
+function checkWinnerInMap(movesMap, x, y, symbol) {
+const dirs=[[[1,0],[-1,0]],[[0,1],[0,-1]],[[1,1],[-1,-1]],[[1,-1],[-1,1]]];
+for (const [d1,d2] of dirs) {
+let cells=[`${x},${y}`];
+for (let i=1;i<5;i++){const k=`${x+d1[0]*i},${y+d1[1]*i}`;if(movesMap[k]===symbol)cells.push(k);else break;}
+for (let i=1;i<5;i++){const k=`${x+d2[0]*i},${y+d2[1]*i}`;if(movesMap[k]===symbol)cells.push(k);else break;}
+if (cells.length>=5){cells.sort((a,b)=>{const[ax,ay]=a.split(',').map(Number);const[bx,by]=b.split(',').map(Number);return ax!==bx?ax-bx:ay-by;});return cells;}
+}
+return null;
+}
+function applyMoveLocally(cellKey, mySymbol, revealedAdded, winningCells) {
+gameState.moves[cellKey] = mySymbol;
+for (const nk of revealedAdded) {
+gameState.revealed.add(nk);
+realRevealedSet.add(nk);
+}
+gameState.currentTurn = OTHER[mySymbol];
+gameState.turnStartTime = Date.now();
+gameState.lastMove = cellKey;
+lastKnownMoveCount = Object.keys(gameState.moves).length;
+lastHighlightedMove = cellKey;
+highlightStartTime = Date.now();
+if (winningCells) {
+gameState.winningCells = winningCells;
+gameState.winTime = Date.now();
+}
+invalidateBounds();
+}
+function rollbackMoveLocally(cellKey, revealedAdded, prev) {
+delete gameState.moves[cellKey];
+for (const nk of revealedAdded) {
+gameState.revealed.delete(nk);
+realRevealedSet.delete(nk);
+}
+gameState.currentTurn = prev.currentTurn;
+gameState.turnStartTime = prev.turnStartTime;
+gameState.lastMove = prev.lastMove;
+lastKnownMoveCount = prev.lastKnownMoveCount;
+lastHighlightedMove = prev.lastHighlightedMove;
+highlightStartTime = prev.highlightStartTime;
+gameState.winningCells = prev.winningCells;
+gameState.winTime = prev.winTime;
+invalidateBounds();
+}
+async function tryMakeMove(cellX, cellY) {
+if (!currentGame || currentGame.status !== STATUS_PLAYING) return;
+const mySymbol = currentUser.uid === gameState.playerX ? 'X' : 'O';
+if (gameState.currentTurn !== mySymbol) return;
+const cellKey = `${cellX},${cellY}`;
+if (!gameState.revealed.has(cellKey) || gameState.moves[cellKey]) return;
+const revealedAdded = [];
+for (let dx = -REVEAL_RADIUS; dx <= REVEAL_RADIUS; dx++)
+for (let dy = -REVEAL_RADIUS; dy <= REVEAL_RADIUS; dy++)
+if (Math.sqrt(dx * dx + dy * dy) <= REVEAL_RADIUS) {
+const nk = `${cellX + dx},${cellY + dy}`;
+if (!gameState.revealed.has(nk)) revealedAdded.push(nk);
+}
+const previewMoves = { ...gameState.moves, [cellKey]: mySymbol };
+const localWin = checkWinnerInMap(previewMoves, cellX, cellY, mySymbol);
+const prev = {
+currentTurn: gameState.currentTurn,
+turnStartTime: gameState.turnStartTime,
+lastMove: gameState.lastMove,
+lastKnownMoveCount: lastKnownMoveCount,
+lastHighlightedMove: lastHighlightedMove,
+highlightStartTime: highlightStartTime,
+winningCells: gameState.winningCells,
+winTime: gameState.winTime
+};
+const preRevealed = Array.from(gameState.revealed);
+const preLastMove = gameState.lastMove;
+const preMoveCount = Object.keys(gameState.moves).length;
+applyMoveLocally(cellKey, mySymbol, revealedAdded, localWin);
+optimisticMove = { cellKey, mySymbol, revealedAdded };
+startUndoWindow(cellKey, preRevealed, preLastMove, preMoveCount + 1, (currentGame.moveVersion || 0) + 1);
+updateGameUI();
+const gameRef = doc(db, 'games', currentGame.id);
+let result = null;
+moveInFlightPromise = runTransaction(db, async (tx) => {
+const snap = await tx.get(gameRef);
+if (!snap.exists()) throw new Error('GAME_NOT_FOUND');
+const g = snap.data();
+if (g.status !== STATUS_PLAYING) throw new Error('NOT_PLAYING');
+if (g.currentTurn !== mySymbol) throw new Error('NOT_YOUR_TURN');
+if (g.moves && g.moves[cellKey]) throw new Error('CELL_TAKEN');
+const prevRevealed = Array.from(g.revealed || []);
+const moves = { ...(g.moves || {}) };
+moves[cellKey] = mySymbol;
+const revealedSet = new Set(prevRevealed);
+for (let dx = -REVEAL_RADIUS; dx <= REVEAL_RADIUS; dx++)
+for (let dy = -REVEAL_RADIUS; dy <= REVEAL_RADIUS; dy++)
+if (Math.sqrt(dx * dx + dy * dy) <= REVEAL_RADIUS)
+revealedSet.add(`${cellX + dx},${cellY + dy}`);
+const winningCells = checkWinnerInMap(moves, cellX, cellY, mySymbol);
+const now = Date.now();
+const update = {
+moves: moves,
+revealed: Array.from(revealedSet),
+currentTurn: OTHER[mySymbol],
+lastMove: cellKey,
+turnStartTime: now,
+moveVersion: (g.moveVersion || 0) + 1
+};
+if (winningCells) {
+update.winner = mySymbol;
+update.winningCells = winningCells;
+update.winTime = now;
+update.status = STATUS_COMPLETED;
+update.endedAt = now;
+update.endReason = 'win';
+}
+tx.update(gameRef, update);
+return {
+winningCells: winningCells,
+prevRevealed: prevRevealed,
+prevLastMove: g.lastMove || null,
+version: (g.moveVersion || 0) + 1,
+moveCount: Object.keys(moves).length,
+endedAt: winningCells ? now : null
+};
+});
+try {
+result = await moveInFlightPromise;
+} catch (e) {
+console.warn('Ход отклонён сервером, откат:', e && e.message ? e.message : e);
+rollbackMoveLocally(cellKey, revealedAdded, prev);
+optimisticMove = null;
+clearUndoWindow();
+updateGameUI();
+return;
+} finally {
+moveInFlightPromise = null;
+}
+optimisticMove = null;
+if (result.winningCells) {
+gameState.winningCells = result.winningCells;
+if (!gameState.winTime) gameState.winTime = Date.now();
+clearUndoWindow();
+upsertCatalogFromGame(currentGame.id, {
+...currentGame,
+status: STATUS_COMPLETED,
+winner: mySymbol,
+endReason: 'win',
+endedAt: result.endedAt
+});
+} else {
+if (undoInfo && undoInfo.cellKey === cellKey) {
+undoInfo.prevRevealed = result.prevRevealed;
+undoInfo.prevLastMove = result.prevLastMove;
+undoInfo.countAfter = result.moveCount;
+undoInfo.version = result.version;
+}
+}
+}
+function updateGameUI() {
+if (!canvas) return;
+const mySymbol = currentUser.uid === gameState.playerX ? 'X' : 'O';
+const symbolEl = document.getElementById('player-symbol');
+const myStatsEl = document.getElementById('my-stats-inline');
+const oppStatsEl = document.getElementById('opponent-stats-inline');
+if (lottery && !lotteryRevealed) {
+symbolEl.textContent = '';
+symbolEl.className = 'player-symbol';
+if (myStatsEl) myStatsEl.style.visibility = 'hidden';
+if (oppStatsEl) oppStatsEl.style.visibility = 'hidden';
+} else {
+symbolEl.textContent = mySymbol;
+symbolEl.className = 'player-symbol ' + (mySymbol === 'X' ? 'symbol-x' : 'symbol-o');
+if (myStatsEl) myStatsEl.style.visibility = '';
+if (oppStatsEl) oppStatsEl.style.visibility = '';
+}
+document.getElementById('player-name').textContent = currentUser.displayName;
+const opponentName = mySymbol === 'X' ? currentGame.playerOName : currentGame.playerXName;
+document.getElementById('opponent-name').textContent = opponentName || '...';
+const turnEl = document.getElementById('turn-indicator');
+if (currentGame.status === STATUS_PAUSED) {
+turnEl.textContent = '\u23F8\uFE0F Пауза';
+turnEl.className = 'turn-indicator paused-turn';
+return;
+}
+if (currentGame.status === STATUS_COMPLETED) {
+turnEl.textContent = '\u{1F3C6} Игра завершена';
+turnEl.className = 'turn-indicator paused-turn';
+return;
+}
+if (currentGame.status === STATUS_CANCELLED) {
+turnEl.textContent = '\u274C Отменена';
+turnEl.className = 'turn-indicator paused-turn';
+return;
+}
+const isMyTurn = gameState.currentTurn === mySymbol;
+turnEl.textContent = isMyTurn ? '\u{1F3AF} Ваш ход' : '\u23F3 Ход соперника';
+turnEl.className = 'turn-indicator ' + (isMyTurn ? 'my-turn' : 'opponent-turn');
+}
+function drawBoard() {
+if (!canvas || !ctx) return;
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = '#e8e8e8';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+const centerX = canvas.width / 2, centerY = canvas.height / 2, size = CELL_SIZE * camera.zoom;
+const visibleRangeX = Math.ceil(canvas.width / (2 * size)) + 2;
+const visibleRangeY = Math.ceil(canvas.height / (2 * size)) + 2;
+let minX = Math.floor(camera.x - visibleRangeX), maxX = Math.ceil(camera.x + visibleRangeX);
+let minY = Math.floor(camera.y - visibleRangeY), maxY = Math.ceil(camera.y + visibleRangeY);
+const bounds = getOpenAreaBounds();
+if (bounds) {
+minX = Math.max(minX, bounds.minX); maxX = Math.min(maxX, bounds.maxX);
+minY = Math.max(minY, bounds.minY); maxY = Math.min(maxY, bounds.maxY);
+}
+if (minX <= maxX && minY <= maxY) {
+ctx.beginPath();
+for (let x = minX; x <= maxX; x++) {
+for (let y = minY; y <= maxY; y++) {
+const key = `${x},${y}`;
+if (!gameState.revealed.has(key)) continue;
+const screenX = centerX + (x - camera.x) * size;
+const screenY = centerY + (y - camera.y) * size;
+ctx.rect(screenX, screenY, size, size);
+}
+}
+ctx.fillStyle = '#ffffff';
+ctx.fill();
+ctx.strokeStyle = '#cccccc';
+ctx.lineWidth = 1;
+ctx.stroke();
+if (lastHighlightedMove) {
+const elapsed = Date.now() - highlightStartTime;
+if (elapsed < 3000) {
+const [hx, hy] = lastHighlightedMove.split(',').map(Number);
+if (hx >= minX && hx <= maxX && hy >= minY && hy <= maxY && gameState.revealed.has(lastHighlightedMove)) {
+const sx = centerX + (hx - camera.x) * size;
+const sy = centerY + (hy - camera.y) * size;
+ctx.fillStyle = `rgba(255, 215, 0, ${Math.max(0, 1 - elapsed / 3000) * 0.6})`;
+ctx.fillRect(sx, sy, size, size);
+}
+} else {
+lastHighlightedMove = null;
+}
+}
+ctx.font = `bold ${size * 0.75}px Arial`;
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+for (let x = minX; x <= maxX; x++) {
+for (let y = minY; y <= maxY; y++) {
+const key = `${x},${y}`;
+const symbol = gameState.moves[key];
+if (!symbol) continue;
+const screenX = centerX + (x - camera.x) * size;
+const screenY = centerY + (y - camera.y) * size;
+ctx.fillStyle = symbol === 'X' ? '#667eea' : '#764ba2';
+ctx.fillText(symbol, screenX + size / 2, screenY + size / 2);
+}
+}
+}
+drawWinningLine();
+drawCrosshair();
+drawLottery();
+}
+function drawWinningLine() {
+if (!gameState.winningCells || gameState.winningCells.length < 2 || !gameState.winTime) return;
+const centerX = canvas.width / 2, centerY = canvas.height / 2, size = CELL_SIZE * camera.zoom;
+const [fx,fy] = gameState.winningCells[0].split(',').map(Number);
+const [lx,ly] = gameState.winningCells[gameState.winningCells.length-1].split(',').map(Number);
+const sx = centerX+(fx+0.5-camera.x)*size, sy = centerY+(fy+0.5-camera.y)*size;
+const ex = centerX+(lx+0.5-camera.x)*size, ey = centerY+(ly+0.5-camera.y)*size;
+const elapsed = (Date.now()-gameState.winTime)/1000;
+const progress = Math.min(1, elapsed/WIN_LINE_ANIMATION_DURATION);
+const cx2 = sx+(ex-sx)*progress, cy2 = sy+(ey-sy)*progress;
+let lw = 4, alpha = 1, glow = 15;
+if (progress >= 1) {
+const p = ((elapsed-WIN_LINE_ANIMATION_DURATION)%1.5)/1.5;
+const pulse = Math.sin(p*Math.PI*2);
+alpha = 0.7+0.3*pulse; lw = 4+2*pulse; glow = 15+10*pulse;
+}
+ctx.save();
+ctx.shadowColor = `rgba(255,50,50,${alpha*0.8})`; ctx.shadowBlur = glow;
+ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(cx2,cy2);
+ctx.strokeStyle = `rgba(255,50,50,${alpha})`; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.stroke();
+ctx.shadowBlur = 0;
+if (progress >= 1) {
+ctx.fillStyle = `rgba(255,50,50,${alpha})`;
+ctx.beginPath(); ctx.arc(sx,sy,lw+2,0,Math.PI*2); ctx.fill();
+ctx.beginPath(); ctx.arc(ex,ey,lw+2,0,Math.PI*2); ctx.fill();
+}
+ctx.restore();
+}
+function getOpenAreaBounds() {
+if (!boundsDirty && cachedBounds) return cachedBounds;
+if (gameState.revealed.size === 0) return null;
+let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+gameState.revealed.forEach(key => {
+const [x,y] = key.split(',').map(Number);
+minX=Math.min(minX,x); maxX=Math.max(maxX,x);
+minY=Math.min(minY,y); maxY=Math.max(maxY,y);
+});
+cachedBounds = {minX,maxX,minY,maxY}; boundsDirty = false;
+return cachedBounds;
+}
+function invalidateBounds() { boundsDirty = true; cachedBounds = null; }
+function clampCameraToOpenArea() {
+const bounds = getOpenAreaBounds();
+if (!bounds) return;
+const p = CAMERA_BOUNDARY_PADDING;
+camera.targetX = Math.max(bounds.minX-p, Math.min(bounds.maxX+1+p, camera.targetX));
+camera.targetY = Math.max(bounds.minY-p, Math.min(bounds.maxY+1+p, camera.targetY));
+}
+function handleWheel(e) {
+e.preventDefault();
+const delta = e.deltaY < 0 ? 1.15 : 0.87;
+const nz = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, camera.targetZoom * delta));
+const rect = canvas.getBoundingClientRect();
+const mx = e.clientX-rect.left, my = e.clientY-rect.top;
+const cx = canvas.width/2, cy = canvas.height/2;
+const wx = camera.targetX+(mx-cx)/(CELL_SIZE*camera.targetZoom);
+const wy = camera.targetY+(my-cy)/(CELL_SIZE*camera.targetZoom);
+camera.targetX = wx-(mx-cx)/(CELL_SIZE*nz);
+camera.targetY = wy-(my-cy)/(CELL_SIZE*nz);
+camera.targetZoom = nz;
+}
+function handlePointerEnter(e) {
+hoverActive = true;
+updateMousePixel(e);
+refreshCanvasCursor();
+}
+function handlePointerLeave(e) {
+hoverActive = false;
+mousePixel = null;
+camera.isDragging = false;
+holdActive = false;
+clearHoldTimer();
+crosshairX = null;
+crosshairY = null;
+refreshCanvasCursor();
+}
+function updateMousePixel(e) {
+if (!canvas) return;
+const rect = canvas.getBoundingClientRect();
+mousePixel = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+lastMouseAt = Date.now();
+}
+function clearHoldTimer() {
+if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+}
+function handlePointerDown(e) {
+updateMousePixel(e);
+try { if (e.pointerId !== undefined) canvas.setPointerCapture(e.pointerId); } catch (err) {}
+camera.isDragging = true;
+draggedFlag = false;
+holdActive = false;
+mouseDownButton = e.button;
+mouseDownTime = Date.now();
+mouseDownPos = { x: e.clientX, y: e.clientY };
+camera.dragStartX = e.clientX;
+camera.dragStartY = e.clientY;
+camera.dragCameraStartX = camera.targetX;
+camera.dragCameraStartY = camera.targetY;
+clearHoldTimer();
+holdTimer = setTimeout(() => {
+if (camera.isDragging) {
+holdActive = true;
+refreshCanvasCursor();
+}
+}, LONG_PRESS_MS);
+}
+function handlePointerMove(e) {
+updateMousePixel(e);
+if (!camera.isDragging) return;
+const moved = Math.abs(e.clientX - mouseDownPos.x) + Math.abs(e.clientY - mouseDownPos.y);
+if (moved > DRAG_THRESHOLD_PX) {
+draggedFlag = true;
+}
+if (draggedFlag) {
+camera.targetX = camera.dragCameraStartX - (e.clientX - camera.dragStartX) / (CELL_SIZE * camera.zoom);
+camera.targetY = camera.dragCameraStartY - (e.clientY - camera.dragStartY) / (CELL_SIZE * camera.zoom);
+}
+refreshCanvasCursor();
+}
+function handlePointerUp(e) {
+clearHoldTimer();
+const heldMs = Date.now() - mouseDownTime;
+const wasDrag = draggedFlag;
+const wasHold = holdActive;
+const wasLeftButton = (mouseDownButton === 0 && e.button === 0) || e.pointerType === 'touch';
+camera.isDragging = false;
+draggedFlag = false;
+holdActive = false;
+try { if (e.pointerId !== undefined) canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+refreshCanvasCursor();
+if (!wasLeftButton) return;
+if (!wasDrag && !wasHold && heldMs < LONG_PRESS_MS) {
+updateMousePixel(e);
+const cell = getHoverCell();
+if (cell) tryMakeMove(cell.x, cell.y);
+}
+}
+function timerTick() {
+if (!canvas) return;
+const now = Date.now();
+const timerDisabled = isTimerDisabled();
+updateNudgeButton();
+if (currentGame?.status === STATUS_PAUSED) {
+const frozenTurn = gameState.turnRemainingFrozen != null ? gameState.turnRemainingFrozen : TURN_AUTO_END_TIME;
+document.getElementById('turn-timer-text').textContent = formatTime(frozenTurn) + ' (пауза)';
+const bar = document.getElementById('turn-progress-bar');
+const txt = document.getElementById('progress-text');
+const pct = Math.max(0, (frozenTurn / TURN_AUTO_END_TIME) * 100);
+bar.style.width = pct + '%';
+txt.textContent = formatTime(frozenTurn);
+bar.className = 'progress-bar state-paused';
+const frozenParty = (gameState.pausedAt || now) - (gameState.gameStartTime || now) - (gameState.pausedTotalMs || 0);
+document.getElementById('game-timer').textContent = formatTime(frozenParty) + ' (пауза)';
+updatePauseUI();
+return;
+}
+if (gameState.gameStartTime) {
+const partyElapsed = now - gameState.gameStartTime - (gameState.pausedTotalMs || 0);
+document.getElementById('game-timer').textContent = formatTime(partyElapsed);
+}
+if (gameState.turnStartTime && !timerDisabled) {
+const elapsed = now-gameState.turnStartTime;
+const remaining = TURN_AUTO_END_TIME-elapsed;
+document.getElementById('turn-timer-text').textContent = formatTime(remaining);
+const bar = document.getElementById('turn-progress-bar');
+const txt = document.getElementById('progress-text');
+const pct = Math.max(0,(remaining/TURN_AUTO_END_TIME)*100);
+bar.style.width = pct+'%'; txt.textContent = formatTime(remaining);
+const myS = currentUser.uid === gameState.playerX ? 'X' : 'O';
+if (gameState.currentTurn === myS &&
+elapsed >= MOVE_REMINDER_MS &&
+lastReminderTurn !== gameState.turnStartTime) {
+lastReminderTurn = gameState.turnStartTime;
+showTopNotification('\u{1F514} Ваш ход! Пора сделать ход.', false);
+playBellSound();
+}
+if (elapsed>=TURN_AUTO_END_TIME) {
+bar.style.width='0%'; txt.textContent='0:00';
+if (gameState.currentTurn===myS) autoEndGame('timeout');
+} else if (elapsed>=TURN_WARNING_TIME) bar.className='progress-bar state-danger';
+else if (elapsed>=TURN_WARNING_TIME*0.8) bar.className='progress-bar state-warning';
+else bar.className='progress-bar state-normal';
+} else if (timerDisabled) {
+const bar=document.getElementById('turn-progress-bar');
+bar.style.width='100%'; bar.className='progress-bar state-normal';
+document.getElementById('progress-text').textContent='\u221E';
+document.getElementById('turn-timer-text').textContent='\u221E';
+}
+}
+function startTimerUpdate() {
+stopTimerUpdate();
+timerTick();
+timerInterval = setInterval(timerTick, 1000);
+}
+function stopTimerUpdate(){if(timerInterval){clearInterval(timerInterval);timerInterval=null;}}
+async function autoEndGame(reason){
+if(!currentGame?.id)return;
+const myS=currentUser.uid===gameState.playerX?'X':'O';
+const gameRef = doc(db,'games',currentGame.id);
+const now = Date.now();
+try {
+await runTransaction(db, async (tx) => {
+const snap = await tx.get(gameRef);
+if (!snap.exists()) throw new Error('GAME_NOT_FOUND');
+const g = snap.data();
+if (g.status !== STATUS_PLAYING) throw new Error('NOT_PLAYING');
+tx.update(gameRef, {
+status: STATUS_COMPLETED,
+winner: OTHER[myS],
+endReason: reason,
+endedAt: now
+});
+});
+upsertCatalogFromGame(currentGame.id, {
+...currentGame,
+status: STATUS_COMPLETED,
+winner: OTHER[myS],
+endReason: reason,
+endedAt: now
+});
+deleteDoc(activityRef(currentGame.id)).catch(() => {});
+} catch (e) {
+console.warn('Авто-завершение не выполнено:', e && e.message ? e.message : e);
+}
+}
+async function updateMyActivity(){
+if(!currentGame?.id||!currentUser)return;
+if (currentGame.status === STATUS_PAUSED) return;
+const myS=currentUser.uid===gameState.playerX?'X':'O';
+try{
+await setDoc(activityRef(currentGame.id), {
+[myS==='X'?'playerXLastActivity':'playerOLastActivity']: Date.now()
+}, { merge: true });
+markConnectionOk(true);
+}catch(e){ markConnectionError(); }
+}
+function startActivityUpdate(){if(activityInterval)clearInterval(activityInterval);updateMyActivity();activityInterval=setInterval(updateMyActivity,ACTIVITY_UPDATE_INTERVAL);}
+function stopActivityUpdate(){if(activityInterval){clearInterval(activityInterval);activityInterval=null;}}
+function checkOpponentStatus(){
+if(!canvas||!currentUser)return;
+const dot=document.getElementById('opponent-status-dot');
+const banner=document.getElementById('disconnect-banner');
+const now = Date.now();
+if (currentGame?.status === STATUS_PAUSED) {
+opponentDisconnected = false;
+disconnectStartTime = null;
+forcedDisconnect = false;
+banner.classList.remove('active');
+dot.className='opponent-status paused-dot';
+dot.title='Игра на паузе';
+return;
+}
+const myS=currentUser.uid===gameState.playerX?'X':'O';
+const oppAct=myS==='X'?gameState.playerOLastActivity:gameState.playerXLastActivity;
+const since = oppAct ? (now - oppAct) : Infinity;
+if (forcedDisconnect) {
+if (oppAct && since < FORCE_CLEAR_FRESH_MS) {
+forcedDisconnect = false;
+opponentDisconnected = false;
+disconnectStartTime = null;
+banner.classList.remove('active');
+dot.className='opponent-status online';
+dot.title='Соперник в сети';
+return;
+}
+opponentDisconnected = true;
+if (!disconnectStartTime) disconnectStartTime = now;
+dot.className='opponent-status reconnecting';
+dot.title='Ожидание переподключения соперника';
+banner.classList.add('active');
+const rem = RECONNECT_TIMEOUT - (now - disconnectStartTime);
+if (rem <= 0) {
+endGameDueDisconnect();
+} else {
+document.getElementById('disconnect-timer').textContent = formatTime(rem);
+}
+return;
+}
+if(!oppAct){
+const gameAge = Date.now() - (currentGame.gameStartTime || Date.now());
+if (gameAge < 30000) {
+dot.className='opponent-status online';
+dot.title='Загрузка статуса соперника...';
+return;
+}
+if(!opponentDisconnected){
+opponentDisconnected=true;
+disconnectStartTime=now;
+}
+dot.className='opponent-status offline';
+dot.title='Соперник не подключается';
+banner.classList.add('active');
+const rem=RECONNECT_TIMEOUT-(now-disconnectStartTime);
+if(rem<=0){
+endGameDueDisconnect();
+} else {
+document.getElementById('disconnect-timer').textContent=formatTime(rem);
+}
+return;
+}
+if(since<=OPPONENT_OFFLINE_THRESHOLD){
+if(opponentDisconnected){opponentDisconnected=false;disconnectStartTime=null;banner.classList.remove('active');}
+dot.className='opponent-status online';
+dot.title='Соперник в сети';
+} else {
+if(!opponentDisconnected){
+opponentDisconnected=true;
+disconnectStartTime = oppAct + OPPONENT_OFFLINE_THRESHOLD;
+}
+dot.className='opponent-status reconnecting';
+dot.title='Ожидание переподключения соперника';
+banner.classList.add('active');
+const rem=RECONNECT_TIMEOUT-(now-disconnectStartTime);
+if(rem<=0)endGameDueDisconnect();
+else document.getElementById('disconnect-timer').textContent=formatTime(rem);
+}
+}
+function startOpponentCheck(){if(opponentCheckInterval)clearInterval(opponentCheckInterval);opponentCheckInterval=setInterval(checkOpponentStatus,OPPONENT_CHECK_INTERVAL);}
+function stopOpponentCheck(){if(opponentCheckInterval){clearInterval(opponentCheckInterval);opponentCheckInterval=null;}}
+window.endGameDueDisconnect = async function() {
+if (!currentGame?.id) return;
+const gameRef = doc(db, 'games', currentGame.id);
+const now = Date.now();
+try {
+await runTransaction(db, async (tx) => {
+const snap = await tx.get(gameRef);
+if (!snap.exists()) throw new Error('GAME_NOT_FOUND');
+const g = snap.data();
+if (g.status !== STATUS_PLAYING) throw new Error('NOT_PLAYING');
+tx.update(gameRef, {
+status: STATUS_CANCELLED,
+endReason: 'opponent_disconnected',
+endedAt: now
+});
+});
+upsertCatalogFromGame(currentGame.id, {
+...currentGame,
+status: STATUS_CANCELLED,
+endReason: 'opponent_disconnected',
+endedAt: now
+});
+deleteDoc(activityRef(currentGame.id)).catch(() => {});
+} catch (e) {
+console.warn('Завершение по дисконнекту не выполнено:', e && e.message ? e.message : e);
+}
+}
+window.surrender = function() {
+if (!currentGame?.id) return;
+if (currentGame.status !== STATUS_PLAYING) return;
+document.getElementById('confirm-overlay').classList.add('active');
+}
+window.resetView=function(){
+if(gameState.lastMove){
+const[x,y]=gameState.lastMove.split(',').map(Number);
+smoothCenterOn(x,y);
+} else {
+camera.targetX=0.5;
+camera.targetY=0.5;
+camera.targetZoom=2;
+}
+if (canvas) {
+mousePixel = { x: canvas.width / 2, y: canvas.height / 2 };
+hoverActive = true;
+lastMouseAt = Date.now();
+}
+}
+window.zoomIn=function(){camera.targetZoom=Math.min(MAX_ZOOM,camera.targetZoom*1.3);}
+window.zoomOut=function(){camera.targetZoom=Math.max(MIN_ZOOM,camera.targetZoom/1.3);}
+function buildGameSummary() {
+if (!gameState.gameStartTime) return '';
+const endAt = (currentGame && currentGame.endedAt) || Date.now();
+const dur = Math.max(0, endAt - gameState.gameStartTime - (gameState.pausedTotalMs || 0));
+const movesArr = Object.values(gameState.moves);
+const total = movesArr.length;
+const myS = currentUser.uid === gameState.playerX ? 'X' : 'O';
+const mine = movesArr.filter((s) => s === myS).length;
+return `
+\u23F1 Длительность: ${formatTime(dur)} • Ходов: ${total} (ваших: ${mine})`;
+}
+function endGame(winner, reason) {
+const myS = currentUser.uid === gameState.playerX ? 'X' : 'O';
+let message;
+let iWon = false;
+if (winner===null) {
+if (reason==='opponent_disconnected') message = '\u26AA Игра завершена.\nСоперник не переподключился.\nРезультат не засчитан.';
+else if (reason==='pause_expired') message = '\u26AA Игра завершена.\nИстёк лимит паузы (72 часа).\nРезультат не засчитан.';
+else if (reason==='cancelled_by_player') message = '\u26AA Игра отменена одним из игроков.\nРезультат не засчитан.';
+else if (reason==='account_deleted') message = '\u{1F5D1}\uFE0F Игра отменена: аккаунт удалён.\nРезультат не засчитан.';
+else if (reason==='account_banned') {
+if (banKickActive) {
+message = '\u{1F6AB} Игра завершена: ваш аккаунт заблокирован.\nРезультат не засчитан.';
+} else {
+const bannedName = (myS === 'X' ? currentGame.playerOName : currentGame.playerXName) || 'соперник';
+message = `\u{1F6AB} Игра завершена: ${bannedName} заблокирован.\nРезультат не засчитан.`;
+}
+}
+else if (reason==='creator_dormant') message = '\u{1F4A4} Игра отменена: создатель не заходил 30+ дней.\nРезультат не засчитан.';
+else message = '\u26AA Игра завершена.\nРезультат не засчитан.';
+message += '\n\u{1F91D} ' + randomPhrase(CANCEL_PHRASES);
+} else {
+iWon = (winner === myS);
+if(reason==='timeout') message=iWon?'\u{1F389} Вы победили!\nВремя соперника истекло.':'\u{1F614} Время хода истекло.';
+else if(reason==='surrender') message=iWon?'\u{1F389} Соперник сдался!':'\u{1F614} Вы сдались.';
+else message=iWon?'\u{1F389} Вы победили!':'\u{1F614} Вы проиграли';
+if (!iWon) {
+message += '\n\u{1F4AA} ' + randomPhrase(LOOSER_PHRASES);
+}
+}
+message += buildGameSummary();
+const delay = gameState.winningCells ? WIN_MODAL_DELAY : 100;
+setTimeout(() => {
+if (iWon) spawnConfetti();
+showResultModal(message);
+}, delay);
+}
+function cleanup(){
+if(animationFrameId)cancelAnimationFrame(animationFrameId);
+stopTimerUpdate();stopActivityUpdate();stopOpponentCheck();
+stopCreatorHeartbeat();
+if (activityListener) { try { activityListener(); } catch (e) {} activityListener = null; }
+clearUndoWindow();
+clearNudgeProbe();
+undoUsedThisCycle = false;
+forcedDisconnect = false;
+nudgeCooldownUntil = 0;
+lottery = null;
+lotteryRequested = false;
+if (lotteryRevealTimer) { clearTimeout(lotteryRevealTimer); lotteryRevealTimer = null; }
+const conf = document.getElementById('confetti-layer');
+if (conf) conf.remove();
+animationFrameId=null;canvas=null;ctx=null;currentGame=null;lastKnownMoveCount=0;
+opponentDisconnected=false;disconnectStartTime=null;
+document.getElementById('disconnect-banner').classList.remove('active');
+const reqB = document.getElementById('pause-request-banner');
+const pauseB = document.getElementById('pause-banner');
+const resumeB = document.getElementById('resume-notice-banner');
+if (reqB) reqB.classList.remove('active');
+if (pauseB) pauseB.classList.remove('active');
+if (resumeB) resumeB.classList.remove('active');
+const nudgeBtn = document.getElementById('nudge-btn');
+if (nudgeBtn) nudgeBtn.style.display = 'none';
+lastNudgeUi = '';
+lastOppResumeFlag = false;
+hoverActive = false;
+mousePixel = null;
+holdActive = false;
+crosshairX = null;
+crosshairY = null;
+lastMouseAt = 0;
+optimisticMove = null;
+moveInFlightPromise = null;
+clearHoldTimer();
+invalidateBounds();
+gameEndHandled=false;
+if(gameListener){gameListener();gameListener=null;}
+clearSavedActiveGameId();
+myActiveGameId = null;
+showScreen('lobby-screen');
+}
+onAuthStateChanged(auth, async (user) => {
+if (user) {
+enterApp(user);
+} else {
+appEntered = false;
+pendingUser = null;
+stopBlockedState();
+stopBanWatch();
+if (!banKickActive) hideBanOverlay();
+currentUser = null;
+stopSessionHeartbeat();
+stopIdleMonitor();
+showScreen('auth-screen');
+}
+});
+document.addEventListener('visibilitychange', () => {
+const lobbyActive = document.getElementById('lobby-screen').classList.contains('active');
+const gameActive = document.getElementById('game-screen').classList.contains('active');
+if (document.hidden) {
+if (lobbyActive && !lobbyPausedByVisibility) {
+if (gamesListener) { gamesListener(); gamesListener = null; }
+stopLobbyCleanup();
+stopLobbyCountdowns();
+stopOrphanCheck();
+lobbyPausedByVisibility = true;
+}
+} else {
+if (sleepMode) return;
+if (lobbyActive && lobbyPausedByVisibility) {
+lobbyPausedByVisibility = false;
+listenToAvailableGames();
+startLobbyCleanup();
+startLobbyCountdowns();
+startOrphanCheck();
+}
+if (gameActive) {
+timerTick();
+}
+}
+});
+startConnectionMonitor();
+window.debug = {
+get gameState() { return gameState; },
+get camera() { return camera; },
+get myCreatedGameId() { return myCreatedGameId; },
+get myActiveGameId() { return myActiveGameId; },
+get currentGame() { return currentGame; },
+get currentUser() { return currentUser; },
+get realRevealedSet() { return realRevealedSet; },
+get opponentDisconnected() { return opponentDisconnected; },
+get disconnectStartTime() { return disconnectStartTime; },
+get waitingStartTime() { return waitingStartTime; },
+get hoverCell() { return getHoverCell(); },
+get optimisticMove() { return optimisticMove; },
+get undoInfo() { return undoInfo; },
+get undoUsedThisCycle() { return undoUsedThisCycle; },
+get forcedDisconnect() { return forcedDisconnect; },
+get lottery() { return lottery; },
+get accountDeletionInProgress() { return accountDeletionInProgress; },
+get lobbyPausedByVisibility() { return lobbyPausedByVisibility; },
+get sleepMode() { return sleepMode; },
+get lobbyConfig() { return lobbyConfig; },
+get savedData() {
+return {
+activeGameId: getSavedActiveGameId(),
+createdGameId_session: getSavedCreatedGameId(),
+createdGameId_persistent: getPersistentCreatedGameId()
+};
+},
+// НОВОЕ В 1.29.0: показать баннер обновления вручную для проверки
+simulateUpdate(ver) {
+showUpdateBanner(ver || '9.9.9');
+return 'Баннер обновления показан (тест).';
+},
+async checkUpdates() {
+const ok = await checkForUpdates();
+return ok ? 'Маяк загружен, версия сайта: ' + (window.XO5_SITE_VERSION && window.XO5_SITE_VERSION.game) : 'Маяк недоступен (сеть или CORS).';
+},
+getSessionIds() {
+const info = {
+browserId: BROWSER_ID.substring(0, 8),
+tabId: TAB_ID.substring(0, 8),
+sessionId: SESSION_ID.substring(0, 20)
+};
+console.table([info]);
+return info;
+},
+getConnection() {
+const info = {
+navigatorOnline: navigator.onLine,
+lastSuccessAgoSec: lastConnectionOk ? Math.floor((Date.now() - lastConnectionOk) / 1000) : null,
+connectionError: connectionError
+};
+console.table([info]);
+return info;
+},
+get activity() {
+const info = {
+playerXLastActivity: gameState.playerXLastActivity ? new Date(gameState.playerXLastActivity).toLocaleString() : null,
+playerOLastActivity: gameState.playerOLastActivity ? new Date(gameState.playerOLastActivity).toLocaleString() : null,
+currentGameStartTime: currentGame?.gameStartTime ? new Date(currentGame.gameStartTime).toLocaleString() : null
+};
+console.table([info]);
+return info;
+},
+async myStats() {
+if (!currentUser) { console.log('Нет активного пользователя'); return null; }
+try {
+const snap = await getDoc(doc(db, 'users', currentUser.uid));
+const d = snap.exists() ? snap.data() : {};
+const info = {
+wins: toNum(d.wins),
+losses: toNum(d.losses),
+noResult: toNum(d.noResult),
+gamesAsX: toNum(d.gamesAsX),
+gamesAsO: toNum(d.gamesAsO),
+lastLoginAt: d.lastLoginAt ? new Date(d.lastLoginAt).toLocaleString() : '-'
+};
+console.table([info]);
+return info;
+} catch (e) { console.error('Ошибка:', e); }
+},
+async sessionInfo() {
+if (!currentUser) { console.log('Нет активного пользователя'); return null; }
+try {
+const snap = await getDoc(doc(db, 'users', currentUser.uid));
+const d = snap.exists() ? snap.data() : {};
+const now = Date.now();
+const info = {
+mySessionId: String(SESSION_ID).substring(0, 20),
+activeSessionId: String(d.activeSessionId || '-').substring(0, 20),
+leaseUntil: d.sessionLeaseUntil ? new Date(d.sessionLeaseUntil).toLocaleTimeString() : '-',
+leaseActive: d.sessionLeaseUntil ? (now < d.sessionLeaseUntil) : false,
+lastActivity: d.sessionLastActivity ? new Date(d.sessionLastActivity).toLocaleTimeString() : '-',
+lastLoginAt: d.lastLoginAt ? new Date(d.lastLoginAt).toLocaleString() : '-'
+};
+console.table([info]);
+return info;
+} catch (e) { console.error('Ошибка:', e); }
+},
+async simulateTakeover() {
+if (!currentUser) { console.log('Нет активного пользователя'); return; }
+try {
+await updateDoc(doc(db, 'users', currentUser.uid), {
+activeSessionId: 'xxx-takeover-test',
+sessionLeaseUntil: Date.now() + 120000
+});
+console.log('%c[TEST] activeSessionId подменён. В течение 60 сек сессия должна быть прервана.', 'color: #ff9800; font-weight: bold;');
+} catch (e) { console.error('Ошибка:', e); }
+},
+async countMyGames() {
+const n = await countMyActiveGames();
+console.log(`Ваших активных игр: ${n} из ${MAX_ACTIVE_GAMES}`);
+return n;
+},
+async forcePauseAge(hours) {
+if (!currentGame?.id || currentGame.status !== STATUS_PAUSED) {
+console.log('Игра не на паузе');
+return;
+}
+try {
+await updateDoc(doc(db, 'games', currentGame.id), {
+pausedAt: Date.now() - Math.round(hours * 3600 * 1000)
+});
+console.log(`Возраст паузы установлен: ${hours} ч`);
+} catch (e) { console.error('Ошибка:', e); }
+},
+async setNudgeCount(n) {
+if (!currentGame?.id) { console.log('Нет активной игры'); return; }
+try {
+await updateDoc(doc(db, 'games', currentGame.id), { nudgeCount: n });
+const next = n + 1;
+const tier = next % NUDGE_MEGA_EVERY === 0 ? 'МЕГА' : (next % NUDGE_BIG_EVERY === 0 ? 'БОЛЬШОЙ' : 'обычный');
+console.log(`Счётчик пинков установлен: ${n} (следующий пинк №${next} — ${tier})`);
+} catch (e) { console.error('Ошибка:', e); }
+},
+async rebuildCatalog() {
+await rebuildCatalog();
+},
+sleepNow() {
+if (!currentUser) { console.log('Нет активного пользователя'); return; }
+enterSleepMode();
+},
+async listGames() {
+try {
+const snapshot = await getDocs(collection(db, 'games'));
+const games = [];
+snapshot.forEach(docSnap => {
+const g = docSnap.data();
+games.push({
+id: docSnap.id,
+room: g.roomName || '?',
+key: g.roomKey || '-',
+status: g.status,
+winner: g.winner ? (g.winner === 'X' ? g.playerXName : g.playerOName) || '?' : '-',
+playerX: g.playerXName || '?',
+playerO: g.playerOName || '-',
+creator: g.createdByName || '?',
+age: g.createdAt ? Math.floor((Date.now() - g.createdAt) / 1000) + 's' : '-'
+});
+});
+console.table(games);
+return games;
+} catch (e) { console.error('Ошибка:', e); }
+},
+async deleteGame(id) {
+try {
+await deleteDoc(doc(db, 'games', id));
+updateCatalog(rooms => removeRoom(rooms, id));
+deleteDoc(activityRef(id)).catch(() => {});
+console.log(`Игра ${id} удалена`);
+} catch (e) { console.error('Ошибка:', e); }
+},
+async deleteAllGames(confirmWord) {
+if (confirmWord !== 'I_UNDERSTAND') {
+console.log('%c[WARN] Удаление ВСЕХ игр требует подтверждения: debug.deleteAllGames("I_UNDERSTAND")', 'color: #ff5252; font-weight: bold;');
+return;
+}
+try {
+const snapshot = await getDocs(collection(db, 'games'));
+let count = 0;
+for (const docSnap of snapshot.docs) {
+await deleteDoc(docSnap.ref);
+deleteDoc(activityRef(docSnap.id)).catch(() => {});
+count++;
+}
+await setDoc(catalogRef(), { rooms: [], updatedAt: Date.now() });
+console.log(`Удалено игр: ${count}, каталог очищен`);
+} catch (e) { console.error('Ошибка:', e); }
+},
+clearSaved() {
+clearSavedActiveGameId();
+clearSavedCreatedGameId();
+console.log('Сохранённые данные очищены');
+},
+help() {
+console.log('%c=== Отладка 5 в ряд v' + VERSION + ' ===', 'color: #667eea; font-weight: bold;');
+console.log('Свойства: gameState, camera, hoverCell, optimisticMove, activity, undoInfo, lottery, sleepMode, savedData, lobbyConfig и др.');
+console.log('Команды:');
+console.log('  debug.myStats()          - моя статистика (включая lastLoginAt)');
+console.log('  debug.sleepNow()         - сразу уснуть (тест скринсейвера)');
+console.log('  debug.rebuildCatalog()   - пересборка каталога лобби');
+console.log('  debug.getConnection()    - состояние соединения');
+console.log('  debug.sessionInfo()      - информация о сессии');
+console.log('  debug.listGames()        - список всех игр');
+console.log('  debug.deleteGame(id)     - удалить игру');
+console.log('  debug.clearSaved()       - очистить сохранённые данные');
+console.log('  debug.simulateUpdate(v)  - показать баннер обновления (тест маяка)');
+console.log('  debug.checkUpdates()     - запросить маяк версий с сайта');
+console.log('  Дворник протухших — только в админке (xo5_admin).');
+}
+};
+console.log('%c[GAME] 5 в ряд v' + VERSION + ': введите debug.help() для отладки', 'color: #667eea; font-weight: bold;');
+</script>
+</body>
+</html>
