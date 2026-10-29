@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XO5 Admin — a0.8.1</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#17202b; --panel2:#1d2836; --line:#2b3a4d;
+    --text:#dbe6f2; --dim:#8fa3b8; --accent:#4da3ff; --bad:#ff6b6b; --ok:#57d38c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:15px/1.5 "Segoe UI",Tahoma,sans-serif}
+  code,pre,.mono{font-family:Consolas,"Courier New",monospace}
+  .hidden{display:none !important}
+  .screen{max-width:1000px;margin:0 auto;padding:24px 16px 40px}
+  h1{font-size:22px;margin:0 0 6px}
+  h2{font-size:17px;margin:18px 0 8px}
+  h3{font-size:15px;margin:14px 0 6px;color:var(--accent)}
+  p{margin:6px 0}
+  label{display:block;margin:8px 0 0;color:var(--dim);font-size:12px}
+  .dim{opacity:.65}
+  .small{font-size:12px}
+  .bad{color:var(--bad)}
+  .ok{color:var(--ok)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:16px;margin:12px 0}
+  input,select{background:var(--panel2);color:var(--text);border:1px solid var(--line);
+    border-radius:8px;padding:9px 10px;font-size:15px;width:100%;margin:4px 0}
+  select{width:auto;font-size:14px}
+  button{background:var(--accent);color:#06111c;border:0;border-radius:8px;
+    padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;margin:4px 6px 4px 0}
+  button:hover{filter:brightness(1.1)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+  button.danger{background:var(--bad);color:#fff}
+  button.small{padding:5px 10px;font-size:12px;font-weight:500}
+  header{display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:10px 14px;margin-bottom:14px}
+  header .title{font-weight:700;font-size:17px}
+  header .badge{background:var(--panel2);border:1px solid var(--line);
+    border-radius:6px;padding:2px 8px;font-size:12px;color:var(--accent)}
+  header .spacer{flex:1}
+  header code{font-size:12px;color:var(--dim)}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+  .tabbtn{background:var(--panel2);color:var(--dim);border:1px solid var(--line);
+    font-weight:500;margin:0}
+  .tabbtn.active{background:var(--accent);color:#06111c;border-color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    padding:10px 12px}
+  .stat .v{font-size:24px;font-weight:700;color:var(--accent)}
+  .stat .k{font-size:12px;color:var(--dim)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);
+    vertical-align:top}
+  th{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  tr[data-uid]:hover,tr[data-gid]:hover,tr[data-docid]:hover{background:var(--panel2)}
+  .nw{white-space:nowrap}
+  pre{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    padding:10px;overflow:auto;font-size:13px}
+  .statusline{margin:8px 0;color:var(--dim);font-size:13px}
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+    background:var(--accent);color:#06111c;font-weight:600;border-radius:8px;
+    padding:10px 18px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:100}
+  #toast.show{opacity:1}
+  footer{margin-top:22px;color:var(--dim);font-size:12px;text-align:center}
+  .bootfail{border-color:var(--bad)}
+  .trash-actions{display:flex;flex-wrap:wrap;gap:4px}
+  .trash-ok{color:var(--ok);font-weight:600}
+  .trash-warn{color:var(--bad);font-weight:600}
+</style>
+<script>
+/* САМОДИАГНОСТИКА */
+window.__xo5 = { booted:false, errors:[] };
+window.addEventListener('error', function(e){
+  var msg = (e && e.message) ? e.message : '';
+  if (!msg && e && e.target && e.target.src) msg = 'Не загрузился ресурс: ' + e.target.src;
+  if (msg) window.__xo5.errors.push(msg);
+}, true);
+window.addEventListener('unhandledrejection', function(e){
+  var r = e && e.reason;
+  window.__xo5.errors.push('promise: ' + String(r && r.message ? r.message : r));
+});
+setTimeout(function(){
+  if (!window.__xo5.booted) {
+    var d = document.getElementById('bootfail');
+    if (d) {
+      d.classList.remove('hidden');
+      document.getElementById('bootfailText').textContent =
+        window.__xo5.errors.length
+          ? window.__xo5.errors.join(' || ')
+          : 'Ошибок не поймано, но инициализация не достигнута: файл сохранился не целиком.';
+    }
+  }
+}, 4000);
+</script>
+</head>
+<body>
+
+<div class="screen">
+  <div id="bootfail" class="card bootfail hidden">
+    <b class="bad">Файл запустился не полностью.</b>
+    <p id="bootfailText" class="small"></p>
+  </div>
+</div>
+
+<!-- ЭКРАН: ВХОД -->
+<div id="screen-login" class="screen hidden">
+  <h1>XO5 — админ-панель</h1>
+  <p class="dim">Вход под тем же именем и паролем, что и в игре.</p>
+  <div class="card" style="max-width:420px">
+    <form id="loginForm">
+      <input id="loginName" type="text" placeholder="Имя" autocomplete="username">
+      <input id="loginPass" type="password" placeholder="Пароль" autocomplete="current-password">
+      <p class="bad small" id="loginErr"></p>
+      <button id="loginBtn" type="submit">Войти</button>
+    </form>
+    <p class="dim small">Адрес входа собирается как «имя@xo5line.local».
+      Для нового проекта xo5line: сначала зарегистрируй имя в игре
+      v1.28.2, затем создай в консоли Firebase документ-маркер
+      admins/{твой UID} (коллекция admins, ID документа равен UID из коллекции users).
+      Без маркера вход сюда запрещён правилами.</p>
+  </div>
+</div>
+
+<!-- ЭКРАН: ДОСТУП ЗАПРЕЩЁН -->
+<div id="screen-denied" class="screen hidden">
+  <h1 class="bad">Доступ запрещён</h1>
+  <div class="card" style="max-width:560px">
+    <p>Аккаунт с UID <code id="deniedUid">—</code> не является админом:
+      в коллекции <code>admins</code> нет документа-маркера с таким ID.</p>
+    <button id="deniedLogoutBtn" type="button">Выйти</button>
+  </div>
+</div>
+
+<!-- ЭКРАН: ПАНЕЛЬ -->
+<div id="screen-app" class="screen hidden">
+  <header>
+    <span class="title">XO5 ADMIN</span>
+    <span class="badge mono">a0.8.1</span>
+    <span class="spacer"></span>
+    <span class="dim small">админ:</span> <b id="hdrName">—</b>
+    <code id="hdrUid">—</code>
+    <button id="logoutBtn" class="ghost" type="button">Выйти</button>
+  </header>
+
+  <div class="tabs">
+    <button class="tabbtn active" data-tab="mon" type="button">Мониторинг</button>
+    <button class="tabbtn" data-tab="users" type="button">Пользователи</button>
+    <button class="tabbtn" data-tab="games" type="button">Игры</button>
+    <button class="tabbtn" data-tab="top" type="button">Топ</button>
+    <button class="tabbtn" data-tab="jan" type="button">Дворник</button>
+    <button class="tabbtn" data-tab="log" type="button">Журнал</button>
+    <button class="tabbtn" data-tab="set" type="button">Настройки</button>
+  </div>
+
+  <!-- МОНИТОРИНГ -->
+  <div id="tab-mon" class="tabpane">
+    <div class="stats">
+      <div class="stat"><div class="v" id="monUsers">—</div><div class="k">всего пользователей</div></div>
+      <div class="stat"><div class="v" id="monActive">—</div><div class="k" id="monActiveLabel">активны за 24 ч</div></div>
+      <div class="stat"><div class="v" id="monRooms">—</div><div class="k">комнат в каталоге</div></div>
+      <div class="stat"><div class="v" id="monWaiting">—</div><div class="k">игры: waiting</div></div>
+      <div class="stat"><div class="v" id="monPlaying">—</div><div class="k">игры: playing</div></div>
+      <div class="stat"><div class="v" id="monPaused">—</div><div class="k">игры: paused</div></div>
+      <div class="stat"><div class="v" id="monCompleted">—</div><div class="k">игры: completed</div></div>
+      <div class="stat"><div class="v" id="monCancelled">—</div><div class="k">игры: cancelled</div></div>
+    </div>
+
+    <h2>Онлайн сейчас (активная аренда сессии)</h2>
+    <div class="card">
+      <p class="dim small">Клик по строке открывает карточку игрока на табе «Пользователи».</p>
+      <table>
+        <thead><tr><th>Имя</th><th>Аренда слота до</th></tr></thead>
+        <tbody id="monOnline"><tr><td colspan="2" class="dim">Загрузка...</td></tr></tbody>
+      </table>
+    </div>
+
+    <h2>Обслуживание</h2>
+    <div class="card">
+      <button id="btnRefresh" type="button">Обновить цифры</button>
+      <button id="btnRebuild" type="button">Пересобрать каталог</button>
+      <button id="btnMonJanitor" type="button">Дворник: протухшие игры</button>
+      <p class="statusline" id="monStatus">Загрузка...</p>
+      <p class="dim small" id="monJanitorNote"></p>
+    </div>
+  </div>
+
+  <!-- ПОЛЬЗОВАТЕЛИ -->
+  <div id="tab-users" class="tabpane hidden">
+    <div class="card">
+      <h2 style="margin-top:0">Пользователи</h2>
+      <p class="dim small">Нажми «Загрузить всех», чтобы получить список.
+        После загрузки работает быстрый поиск по имени или UID (без учёта регистра).</p>
+      <button id="btnUserLoadAll" type="button">Загрузить всех пользователей</button>
+      <p class="statusline" id="userSearchStatus"></p>
+      <input id="userSearchInput" type="text" placeholder="Поиск по имени или UID...">
+      <div id="userSearchResults" style="margin-top:10px"></div>
+    </div>
+
+    <div id="userCardContainer" class="card hidden" style="border:1px solid var(--accent)">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <h2 style="margin:0" id="cardName">—</h2>
+        <button id="btnCloseCard" class="ghost" type="button">Закрыть</button>
+      </div>
+      <p class="small mono dim" id="cardUid"></p>
+      <div id="cardBannedBadge" class="bad" style="display:none;font-weight:700;margin:6px 0">ЗАБАНЕН</div>
+
+      <h3>Активность</h3>
+      <p class="small">Создан: <span id="cardCreated"></span></p>
+      <p class="small">Последний вход: <span id="cardLastLogin"></span></p>
+      <p class="small">Сессия: <span id="cardSession"></span></p>
+
+      <h3>Статистика</h3>
+      <div class="stats" style="margin-bottom:12px">
+        <div class="stat"><div class="v" id="cardWins">0</div><div class="k">Победы</div></div>
+        <div class="stat"><div class="v" id="cardLosses">0</div><div class="k">Поражения</div></div>
+        <div class="stat"><div class="v" id="cardNoResult">0</div><div class="k">Без результата</div></div>
+        <div class="stat"><div class="v" id="cardGamesX">0</div><div class="k">Игр за X</div></div>
+        <div class="stat"><div class="v" id="cardGamesO">0</div><div class="k">Игр за O</div></div>
+      </div>
+
+      <h3>Действия</h3>
+      <button id="btnToggleBan" type="button">Бан / Разбан</button>
+      <button id="btnEditStats" type="button">Изменить статистику</button>
+
+      <div id="cardEditForm" class="hidden" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">
+        <p class="small dim" style="margin-top:0">Введи новые значения. Оставь поле пустым,
+          если не хочешь его менять. Сохраняются только введённые числа (≥0).</p>
+        <input type="number" id="editWins" placeholder="Победы">
+        <input type="number" id="editLosses" placeholder="Поражения">
+        <input type="number" id="editNoResult" placeholder="Без результата">
+        <input type="number" id="editGamesX" placeholder="Игр за X">
+        <input type="number" id="editGamesO" placeholder="Игр за O">
+        <button id="btnSaveStats" type="button">Сохранить изменения</button>
+        <button id="btnCancelStats" class="ghost" type="button">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ИГРЫ -->
+  <div id="tab-games" class="tabpane hidden">
+    <div class="card">
+      <h2 style="margin-top:0">Игры</h2>
+      <p class="dim small">Загрузи список, кликни по строке — ниже откроется
+        карточка партии с действиями.</p>
+      <button id="btnGamesLoad" type="button">Загрузить все игры</button>
+      <select id="gamesFilter">
+        <option value="all">Все статусы</option>
+        <option value="waiting">waiting</option>
+        <option value="playing">playing</option>
+        <option value="paused">paused</option>
+        <option value="completed">completed</option>
+        <option value="cancelled">cancelled</option>
+      </select>
+      <input id="gamesSearch" type="text" placeholder="Поиск по названию комнаты, ключу или id...">
+      <p class="statusline" id="gamesStatus"></p>
+      <div id="gamesList" style="margin-top:10px"></div>
+    </div>
+
+    <div id="gameCardContainer" class="card hidden" style="border:1px solid var(--accent)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <span class="dim small">Карточка партии</span>
+        <button id="btnCloseGameCard" class="ghost" type="button">Закрыть</button>
+      </div>
+      <div id="gameCardBody"></div>
+      <p class="small mono dim" id="gameCardActivity"></p>
+      <h3>Действия</h3>
+      <button id="btnGameCancel" class="ghost" type="button">Отменить (без результата)</button>
+      <button id="btnGameWinX" type="button">Победа X</button>
+      <button id="btnGameWinO" type="button">Победа O</button>
+      <button id="btnGameDelete" class="danger" type="button">Удалить игру</button>
+      <p class="dim small">Отмена доступна для waiting/playing/paused. Назначение победы —
+        только playing/paused (статистика начислится клиентами игроков автоматически,
+        флаги statsAppliedX/O защитят от двойного начисления). Удаление стирает документ
+        игры, документ activity и карточку каталога. Все действия пишутся в журнал.</p>
+    </div>
+  </div>
+
+  <!-- ТОП -->
+  <div id="tab-top" class="tabpane hidden">
+    <div class="card">
+      <h2 style="margin-top:0">Топ игроков и агрегаты</h2>
+      <button id="btnTopRefresh" type="button">Обновить</button>
+      <select id="topSort">
+        <option value="wins">Сортировка: по победам</option>
+        <option value="rate">Сортировка: по проценту побед (минимум 5 игр)</option>
+        <option value="games">Сортировка: по общему числу игр</option>
+      </select>
+      <p class="statusline" id="topStatus">Загрузка...</p>
+      <div class="stats" id="topAgg"></div>
+      <h3>Рейтинг игроков</h3>
+      <div id="topTable"></div>
+      <p class="dim small">Процент побед = победы / (победы + поражения + без результата) × 100.
+        Средняя длительность считается только по завершённым играм с победителем,
+        из времени партии вычитается суммарное время пауз.</p>
+    </div>
+  </div>
+
+  <!-- ДВОРНИК -->
+  <div id="tab-jan" class="tabpane hidden">
+
+    <div class="card">
+      <h2 style="margin-top:0">Алгоритм 1 — Протухшие игры</h2>
+      <p class="dim small">Признак: в игре не было ни одного хода
+        <b>≥ N дней</b> (статус не важен). Якорь последнего хода:
+        turnStartTime → gameStartTime → createdAt. Действие: полное удаление
+        документа игры, документа activity и карточки каталога —
+        без результата и без начисления статистики. Игры с ходами
+        живут неограниченно долго.</p>
+      <p class="statusline" id="janGamesThreshold"></p>
+      <button id="btnJanGamesDry" type="button">Пробный прогон: показать все игры и протухшие</button>
+      <button id="btnJanGamesRun" class="danger" type="button">Запустить дворник: протухшие игры</button>
+      <p class="statusline" id="janGamesStatus"></p>
+
+      <h3>Таблица пробного прогона</h3>
+      <div id="janGamesDryList"><p class="dim">Пробный прогон ещё не выполнялся.</p></div>
+
+      <h3>История запусков (из журнала)</h3>
+      <div id="janGamesHistory"><p class="dim">Загрузка...</p></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Алгоритм 2 — Протухшие аккаунты</h2>
+      <p class="dim small">Признак: вход в аккаунт старше <b>≥ N дней</b>
+        (lastLoginAt → createdAt). Действие: purge активных игр игрока
+        (waiting/playing/paused) без результата → создание карточки
+        в <code>/trash</code> с именем/email/снимком статистики → удаление
+        документа <code>users/{uid}</code>. Запись входа в Auth
+        удаляется вручную в консоли Firebase; админка лишь отмечает
+        карточку «Auth удалён» в блоке «Корзина».</p>
+      <p class="statusline" id="janAccThreshold"></p>
+      <button id="btnJanAccDry" type="button">Пробный прогон: показать, что будет удалено</button>
+      <button id="btnJanAccRun" class="danger" type="button">Запустить дворник: протухшие аккаунты</button>
+      <p class="statusline" id="janAccStatus"></p>
+
+      <h3>Что будет удалено (последний пробный прогон)</h3>
+      <div id="janAccDryList"><p class="dim">Пробный прогон ещё не выполнялся.</p></div>
+
+      <h3>История запусков (из журнала)</h3>
+      <div id="janAccHistory"><p class="dim">Загрузка...</p></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Корзина (<code>/trash</code>)</h2>
+      <p class="dim small">Очередь ручной зачистки: карточки аккаунтов,
+        ждущих ручного удаления записи Auth в консоли Firebase.
+        После зачистки Auth в консоли нажми «Auth удалён» — карточка
+        отметится выполненной. Кнопка «Убрать из корзины» предупреждает,
+        если Auth ещё не зачищен (иначе запись входа теоретически
+        пересоздаст профиль).</p>
+      <button id="btnTrashRefresh" type="button">Обновить корзину</button>
+      <p class="statusline" id="trashStatus">Загрузка...</p>
+      <div id="trashList"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Сиротские документы activity</h2>
+      <p class="dim small">Документы <code>activity/{id}</code>, для которых
+        нет соответствующей игры в <code>games</code>. Накапливаются из-за
+        старых версий игры и сбоев удаления. Кнопка находит их, показывает
+        список и удаляет после подтверждения. Запись в журнал:
+        <code>activity_orphans_purged</code>.</p>
+      <button id="btnActOrphans" type="button">Найти и удалить сирот activity</button>
+      <p class="statusline" id="actOrphansStatus"></p>
+      <div id="actOrphansList"></div>
+    </div>
+
+  </div>
+
+  <!-- ЖУРНАЛ -->
+  <div id="tab-log" class="tabpane hidden">
+    <div class="card">
+      <button id="btnLogRefresh" type="button">Обновить</button>
+      <p class="statusline" id="logStatus">Загрузка...</p>
+      <table>
+        <thead><tr><th>Время</th><th>Админ</th><th>Действие</th><th>Детали</th></tr></thead>
+        <tbody id="logBody"><tr><td colspan="4" class="dim">Загрузка...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- НАСТРОЙКИ -->
+  <div id="tab-set" class="tabpane hidden">
+    <div class="card">
+      <h2 style="margin-top:0">Настройки приложения (config/app)</h2>
+      <p class="statusline" id="setMeta">Загрузка...</p>
+
+      <h3>Применяются сейчас (админка)</h3>
+      <label>Дворник: порог протухшей игры, дней без ходов (1–365)</label>
+      <input type="number" id="cfgStaleGameDays" min="1" max="365">
+      <label>Дворник: порог протухшего аккаунта, дней (1–3650)</label>
+      <input type="number" id="cfgStaleAccountDays" min="1" max="3650">
+      <label>Мониторинг: окно активности, часов (1–720)</label>
+      <input type="number" id="cfgActiveWindowHours" min="1" max="720">
+
+      <h3>Зарезервировано (игра начнёт читать в v1.28.x)</h3>
+      <p class="dim small">Эти значения сохраняются в config/app, но игровой файл их
+        ПОКА не читает. Изменение сейчас не влияет на игру и будет применено игрой
+        после версии v1.28.x.</p>
+      <label>Ход: авто-завершение, минут (1–240)</label>
+      <input type="number" id="cfgTurnAutoEndMin" min="1" max="240">
+      <label>Ход: предупреждение, минут (1–240, строго меньше авто-завершения)</label>
+      <input type="number" id="cfgTurnWarningMin" min="1" max="240">
+      <label>Комната waiting: время жизни, минут (1–120)</label>
+      <input type="number" id="cfgWaitingTimeoutMin" min="1" max="120">
+      <label>playing без ходов: удаление, минут (5–1440)</label>
+      <input type="number" id="cfgPlayingInactiveMin" min="5" max="1440">
+      <label>Пауза: лимит, часов (1–720)</label>
+      <input type="number" id="cfgPauseMaxHours" min="1" max="720">
+      <label>Переподключение соперника: ожидание, минут (1–240)</label>
+      <input type="number" id="cfgReconnectMin" min="1" max="240">
+      <label>Сон при бездействии, минут (1–120)</label>
+      <input type="number" id="cfgIdleSleepMin" min="1" max="120">
+
+      <p style="margin-top:12px">
+        <button id="btnSaveConfig" type="button">Сохранить в config/app</button>
+        <button id="btnResetConfig" class="ghost" type="button">Заполнить значениями по умолчанию</button>
+      </p>
+      <p class="dim small">Сохранение перезаписывает документ config/app (с updatedAt и
+        updatedBy) и пишет в журнал запись config_update с диффом изменений.
+        Админка применяет новые пороги дворника и окна активности немедленно.</p>
+    </div>
+  </div>
+
+  <footer>xo5_admin_a0.8.1.html &middot; a0.8.1 &middot; сборка 2026-10-29 &middot;
+    проект xo5line &middot; &copy; Ni.Coder &amp; Qwen</footer>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+(function(){
+  'use strict';
+  var ADMIN_VERSION = 'a0.8.1';
+  var BUILD_DATE = '2026-10-29';
+  var DAY_MS = 86400000;
+  var HOUR_MS = 3600000;
+  var MAX_CATALOG_ROOMS = 60;
+  var MIN_GAMES_FOR_RATE = 5;
+  // НОВОЕ В a0.8.1: синтетический домен входа совпадает с именем проекта
+  var EMAIL_DOMAIN = '@xo5line.local';
+
+  var DEFAULT_CONFIG = {
+    janitor: { staleGameDays: 5, staleAccountDays: 30 },
+    monitoring: { activeWindowHours: 24 },
+    game: {
+      turnAutoEndMin: 20,
+      turnWarningMin: 15,
+      waitingTimeoutMin: 5,
+      playingInactiveMin: 30,
+      pauseMaxHours: 72,
+      reconnectMin: 20,
+      idleSleepMin: 5
+    }
+  };
+
+  console.log('XO5 ADMIN ' + ADMIN_VERSION + ' (build ' + BUILD_DATE + ')');
+
+  function $(id){ return document.getElementById(id); }
+  function num(v){ var n = Number(v); return isFinite(n) ? n : 0; }
+  function fail(msg){
+    window.__xo5.errors.push(msg);
+    var d = $('bootfail');
+    if (d) { d.classList.remove('hidden'); $('bootfailText').textContent = msg; }
+  }
+  if (typeof firebase === 'undefined' || !firebase.initializeApp) {
+    fail('Не удалось загрузить библиотеки Firebase с CDN gstatic. Проверь интернет и обнови страницу (Ctrl+F5).');
+    return;
+  }
+
+  var firebaseConfig = {
+    apiKey: "AIzaSyBErGlVe3j1IIPYiBGz2TAJxr96uV1Nff0",
+    authDomain: "xo5line.firebaseapp.com",
+    projectId: "xo5line",
+    storageBucket: "xo5line.firebasestorage.app",
+    messagingSenderId: "465510523600",
+    appId: "1:465510523600:web:ad8c4b628d32ea3dc2f4d5"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  var auth = firebase.auth();
+  var db = firebase.firestore();
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){});
+
+  var state = {
+    uid:null, name:'', tab:'mon', timer:null, loginLogged:false,
+    allUsers:[], currentEditUser:null,
+    allGames:[], currentGameCard:null,
+    topUsers:[], topGames:[],
+    cfg: mergeConfig(null)
+  };
+
+  function escapeHtml(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function fmtTs(ms){
+    if (!ms || typeof ms !== 'number') return '—';
+    return new Date(ms).toLocaleString('ru-RU');
+  }
+  function fmtDur(ms){
+    if (!ms) return '—';
+    var total = Math.round(ms / 1000);
+    var h = Math.floor(total / 3600);
+    var m = Math.floor((total % 3600) / 60);
+    var s = total % 60;
+    if (h > 0) return h + ' ч ' + m + ' мин';
+    if (m > 0) return m + ' мин ' + s + ' с';
+    return s + ' с';
+  }
+  function showToast(msg){
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 3500);
+  }
+  function showScreen(name){
+    ['login','denied','app'].forEach(function(s){
+      $('screen-' + s).classList.toggle('hidden', s !== name);
+    });
+  }
+
+  /* ---------- КОНФИГ ---------- */
+  function normInt(v, dflt, min, max){
+    var n = parseInt(v, 10);
+    if (isNaN(n)) return dflt;
+    if (n < min) return min;
+    if (n > max) return max;
+    return n;
+  }
+  function mergeConfig(stored){
+    var s = stored || {};
+    var sj = s.janitor || {};
+    var sm = s.monitoring || {};
+    var sg = s.game || {};
+    var d = DEFAULT_CONFIG;
+    var staleAccountDays = (typeof sj.staleAccountDays === 'number')
+      ? sj.staleAccountDays
+      : ((typeof sj.dormantDays === 'number') ? sj.dormantDays : d.janitor.staleAccountDays);
+    return {
+      janitor: {
+        staleGameDays: normInt(sj.staleGameDays, d.janitor.staleGameDays, 1, 365),
+        staleAccountDays: normInt(staleAccountDays, d.janitor.staleAccountDays, 1, 3650)
+      },
+      monitoring: { activeWindowHours: normInt(sm.activeWindowHours, d.monitoring.activeWindowHours, 1, 720) },
+      game: {
+        turnAutoEndMin: normInt(sg.turnAutoEndMin, d.game.turnAutoEndMin, 1, 240),
+        turnWarningMin: normInt(sg.turnWarningMin, d.game.turnWarningMin, 1, 240),
+        waitingTimeoutMin: normInt(sg.waitingTimeoutMin, d.game.waitingTimeoutMin, 1, 120),
+        playingInactiveMin: normInt(sg.playingInactiveMin, d.game.playingInactiveMin, 5, 1440),
+        pauseMaxHours: normInt(sg.pauseMaxHours, d.game.pauseMaxHours, 1, 720),
+        reconnectMin: normInt(sg.reconnectMin, d.game.reconnectMin, 1, 240),
+        idleSleepMin: normInt(sg.idleSleepMin, d.game.idleSleepMin, 1, 120)
+      },
+      updatedAt: s.updatedAt || null,
+      updatedBy: s.updatedBy || null
+    };
+  }
+  function updateActiveLabel(){
+    var el = $('monActiveLabel');
+    if (el) el.textContent = 'активны за ' + state.cfg.monitoring.activeWindowHours + ' ч';
+    var note = $('monJanitorNote');
+    if (note) note.textContent =
+      'Пороги дворника сейчас: ' +
+      'протухшая игра — ' + state.cfg.janitor.staleGameDays + ' дн. без ходов, ' +
+      'протухший аккаунт — ' + state.cfg.janitor.staleAccountDays + ' дн. без входа. ' +
+      'Изменить — таб «Настройки».';
+    var jg = $('janGamesThreshold');
+    if (jg) jg.textContent = 'Текущий порог: ' + state.cfg.janitor.staleGameDays + ' дн. без ходов. Изменить — таб «Настройки».';
+    var ja = $('janAccThreshold');
+    if (ja) ja.textContent = 'Текущий порог: ' + state.cfg.janitor.staleAccountDays + ' дн. без входа. Изменить — таб «Настройки».';
+  }
+  function loadConfigSilent(){
+    return db.collection('config').doc('app').get().then(function(s){
+      state.cfg = mergeConfig(s.exists ? s.data() : null);
+      updateActiveLabel();
+    }).catch(function(){
+      state.cfg = mergeConfig(null);
+      updateActiveLabel();
+    });
+  }
+  function fillCfgForm(c){
+    $('cfgStaleGameDays').value = c.janitor.staleGameDays;
+    $('cfgStaleAccountDays').value = c.janitor.staleAccountDays;
+    $('cfgActiveWindowHours').value = c.monitoring.activeWindowHours;
+    $('cfgTurnAutoEndMin').value = c.game.turnAutoEndMin;
+    $('cfgTurnWarningMin').value = c.game.turnWarningMin;
+    $('cfgWaitingTimeoutMin').value = c.game.waitingTimeoutMin;
+    $('cfgPlayingInactiveMin').value = c.game.playingInactiveMin;
+    $('cfgPauseMaxHours').value = c.game.pauseMaxHours;
+    $('cfgReconnectMin').value = c.game.reconnectMin;
+    $('cfgIdleSleepMin').value = c.game.idleSleepMin;
+  }
+  function readCfgFromForm(){
+    var errs = [];
+    function gi(id, min, max, label){
+      var v = parseInt($(id).value, 10);
+      if (isNaN(v)) { errs.push(label + ': введите целое число'); return null; }
+      if (v < min || v > max) { errs.push(label + ': введите число от ' + min + ' до ' + max); return null; }
+      return v;
+    }
+    var staleGameDays = gi('cfgStaleGameDays', 1, 365, 'Поле «Дворник: порог протухшей игры, дней без ходов»');
+    var staleAccountDays = gi('cfgStaleAccountDays', 1, 3650, 'Поле «Дворник: порог протухшего аккаунта, дней»');
+    var activeWindowHours = gi('cfgActiveWindowHours', 1, 720, 'Поле «Мониторинг: окно активности, часов»');
+    var turnAutoEndMin = gi('cfgTurnAutoEndMin', 1, 240, 'Поле «Ход: авто-завершение, минут»');
+    var turnWarningMin = gi('cfgTurnWarningMin', 1, 240, 'Поле «Ход: предупреждение, минут»');
+    var waitingTimeoutMin = gi('cfgWaitingTimeoutMin', 1, 120, 'Поле «Комната waiting: время жизни, минут»');
+    var playingInactiveMin = gi('cfgPlayingInactiveMin', 5, 1440, 'Поле «playing без ходов: удаление, минут»');
+    var pauseMaxHours = gi('cfgPauseMaxHours', 1, 720, 'Поле «Пауза: лимит, часов»');
+    var reconnectMin = gi('cfgReconnectMin', 1, 240, 'Поле «Переподключение соперника: ожидание, минут»');
+    var idleSleepMin = gi('cfgIdleSleepMin', 1, 120, 'Поле «Сон при бездействии, минут»');
+    if (turnWarningMin !== null && turnAutoEndMin !== null && turnWarningMin >= turnAutoEndMin) {
+      errs.push('Поле «Ход: предупреждение, минут» должно быть меньше поля «Ход: авто-завершение, минут»');
+    }
+    return {
+      errs: errs,
+      value: {
+        janitor: { staleGameDays: staleGameDays, staleAccountDays: staleAccountDays },
+        monitoring: { activeWindowHours: activeWindowHours },
+        game: {
+          turnAutoEndMin: turnAutoEndMin,
+          turnWarningMin: turnWarningMin,
+          waitingTimeoutMin: waitingTimeoutMin,
+          playingInactiveMin: playingInactiveMin,
+          pauseMaxHours: pauseMaxHours,
+          reconnectMin: reconnectMin,
+          idleSleepMin: idleSleepMin
+        }
+      }
+    };
+  }
+  function loadSettings(){
+    var meta = $('setMeta');
+    meta.textContent = 'Загрузка...';
+    db.collection('config').doc('app').get().then(function(s){
+      var stored = s.exists ? s.data() : null;
+      state.cfg = mergeConfig(stored);
+      fillCfgForm(state.cfg);
+      updateActiveLabel();
+      meta.textContent = s.exists
+        ? ('Документ config/app: обновлён ' + fmtTs(stored.updatedAt) + ' кем: ' + (stored.updatedBy || '—'))
+        : 'Документ config/app ещё не создан — действуют значения по умолчанию. Будет создан при первом сохранении.';
+    }).catch(function(e){
+      meta.textContent = 'Ошибка: ' + e.message;
+    });
+  }
+  function saveConfig(){
+    var r = readCfgFromForm();
+    if (r.errs.length) {
+      $('setMeta').textContent = 'Ошибки проверки: ' + r.errs.join('; ');
+      showToast('Проверь значения: ' + r.errs[0]);
+      return;
+    }
+    var prev = state.cfg;
+    var changes = {};
+    function diff(path, a, b){ if (a !== b) changes[path] = { from: a, to: b }; }
+    diff('janitor.staleGameDays', prev.janitor.staleGameDays, r.value.janitor.staleGameDays);
+    diff('janitor.staleAccountDays', prev.janitor.staleAccountDays, r.value.janitor.staleAccountDays);
+    diff('monitoring.activeWindowHours', prev.monitoring.activeWindowHours, r.value.monitoring.activeWindowHours);
+    Object.keys(prev.game).forEach(function(k){
+      diff('game.' + k, prev.game[k], r.value.game[k]);
+    });
+    var now = Date.now();
+    var payload = {
+      janitor: r.value.janitor,
+      monitoring: r.value.monitoring,
+      game: r.value.game,
+      updatedAt: now,
+      updatedBy: state.name
+    };
+    var btn = $('btnSaveConfig');
+    btn.disabled = true;
+    db.collection('config').doc('app').set(payload).then(function(){
+      state.cfg = mergeConfig(payload);
+      updateActiveLabel();
+      return logAction('config_update', { changes: changes });
+    }).then(function(){
+      showToast(Object.keys(changes).length ? 'Настройки сохранены' : 'Сохранено (изменений нет)');
+      loadSettings();
+      refreshMonitoring(true);
+    }).catch(function(e){
+      showToast('Ошибка сохранения: ' + e.message);
+    }).then(function(){
+      btn.disabled = false;
+    });
+  }
+
+  /* ---------- AUTH ---------- */
+  auth.onAuthStateChanged(function(u){ onAuthChange(u); });
+  showScreen('login');
+  window.__xo5.booted = true;
+
+  function onAuthChange(u){
+    if (!u) {
+      state.uid = null; state.name = '';
+      stopTimer();
+      $('loginBtn').disabled = false;
+      showScreen('login');
+      return;
+    }
+    state.uid = u.uid;
+    db.collection('users').doc(u.uid).get().then(function(prof){
+      state.name = (prof.exists && prof.data() && prof.data().username)
+        ? prof.data().username
+        : String(u.email || '').split('@')[0];
+      return db.collection('admins').doc(u.uid).get();
+    }).then(function(adm){
+      if (adm.exists) { enterPanel(); }
+      else {
+        stopTimer();
+        $('deniedUid').textContent = u.uid;
+        showScreen('denied');
+      }
+    }).catch(function(){
+      stopTimer();
+      $('deniedUid').textContent = u.uid;
+      showScreen('denied');
+    });
+  }
+
+  $('loginForm').addEventListener('submit', function(ev){
+    ev.preventDefault();
+    var name = ($('loginName').value || '').trim();
+    var pass = $('loginPass').value || '';
+    if (!name || !pass) { $('loginErr').textContent = 'Введи имя и пароль.'; return; }
+    $('loginBtn').disabled = true;
+    $('loginErr').textContent = '';
+    var lower = name.toLowerCase();
+    var cands = (lower === name) ? [name] : [name, lower];
+    var i = 0;
+    function tryNext(){
+      if (i >= cands.length) {
+        $('loginBtn').disabled = false;
+        $('loginErr').textContent = 'Неверное имя или пароль.';
+        return;
+      }
+      var c = cands[i]; i++;
+      auth.signInWithEmailAndPassword(c + EMAIL_DOMAIN, pass)
+        .then(function(){})
+        .catch(function(e){
+          var code = (e && e.code) ? e.code : '';
+          if (code === 'auth/too-many-requests' || code === 'auth/network-request-failed') {
+            $('loginBtn').disabled = false;
+            $('loginErr').textContent = (code === 'auth/network-request-failed')
+              ? 'Нет связи с Firebase.' : 'Слишком много попыток.';
+            return;
+          }
+          tryNext();
+        });
+    }
+    tryNext();
+  });
+  $('logoutBtn').addEventListener('click', function(){ auth.signOut().catch(function(){}); });
+  $('deniedLogoutBtn').addEventListener('click', function(){ auth.signOut().catch(function(){}); });
+
+  function enterPanel(){
+    $('hdrName').textContent = state.name;
+    $('hdrUid').textContent = state.uid;
+    showScreen('app');
+    if (!state.timer) {
+      state.timer = setInterval(function(){
+        if (state.tab === 'mon' && !document.hidden) refreshMonitoring(true);
+      }, 60000);
+    }
+    if (!state.loginLogged) {
+      state.loginLogged = true;
+      logAction('login', { version: ADMIN_VERSION });
+    }
+    loadConfigSilent().then(function(){
+      switchTab('mon');
+    });
+  }
+  function stopTimer(){
+    if (state.timer) { clearInterval(state.timer); state.timer = null; }
+    state.loginLogged = false;
+  }
+
+  /* ---------- ТАБЫ ---------- */
+  Array.prototype.forEach.call(document.querySelectorAll('.tabbtn'), function(b){
+    b.addEventListener('click', function(){ switchTab(b.getAttribute('data-tab')); });
+  });
+  function switchTab(t){
+    state.tab = t;
+    Array.prototype.forEach.call(document.querySelectorAll('.tabbtn'), function(b){
+      b.classList.toggle('active', b.getAttribute('data-tab') === t);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.tabpane'), function(p){
+      p.classList.toggle('hidden', p.id !== 'tab-' + t);
+    });
+    if (t === 'mon') refreshMonitoring(true);
+    if (t === 'log') loadLog();
+    if (t === 'set') loadSettings();
+    if (t === 'games' && !state.allGames.length) loadGames();
+    if (t === 'top') {
+      if (state.topUsers.length) renderTop();
+      else loadTop();
+    }
+    if (t === 'jan') {
+      updateActiveLabel();
+      loadJanGamesHistory();
+      loadJanAccHistory();
+      loadTrash();
+    }
+  }
+
+  function focusUser(uid){
+    switchTab('users');
+    var open = function(){
+      var u = null;
+      for (var i = 0; i < state.allUsers.length; i++) {
+        if (state.allUsers[i]._uid === uid) { u = state.allUsers[i]; break; }
+      }
+      if (u) openUserCard(u);
+      else showToast('Игрок не найден в списке пользователей');
+    };
+    if (state.allUsers.length) open();
+    else loadAllUsers().then(open);
+  }
+
+  /* ---------- МОНИТОРИНГ ---------- */
+  function refreshMonitoring(silent){
+    var st = $('monStatus');
+    st.textContent = 'Обновление...';
+    var now = Date.now();
+    var activeWindowMs = (state.cfg.monitoring.activeWindowHours || 24) * HOUR_MS;
+    Promise.all([
+      db.collection('users').get(),
+      db.collection('users').where('lastLoginAt', '>=', now - activeWindowMs).get(),
+      db.collection('games').where('status', '==', 'waiting').get(),
+      db.collection('games').where('status', '==', 'playing').get(),
+      db.collection('games').where('status', '==', 'paused').get(),
+      db.collection('games').where('status', '==', 'completed').get(),
+      db.collection('games').where('status', '==', 'cancelled').get(),
+      db.collection('users').where('sessionLeaseUntil', '>', now).get(),
+      db.collection('meta').doc('lobby').get()
+    ]).then(function(res){
+      $('monUsers').textContent = res[0].size;
+      $('monActive').textContent = res[1].size;
+      $('monWaiting').textContent = res[2].size;
+      $('monPlaying').textContent = res[3].size;
+      $('monPaused').textContent = res[4].size;
+      $('monCompleted').textContent = res[5].size;
+      $('monCancelled').textContent = res[6].size;
+      var meta = res[8];
+      $('monRooms').textContent = (meta.exists && Array.isArray(meta.data().rooms))
+        ? meta.data().rooms.length : 0;
+      var rows = res[7].docs.map(function(d){
+        return { uid: d.id, name: d.data().username || d.id, until: d.data().sessionLeaseUntil || 0 };
+      }).sort(function(a, b){ return b.until - a.until; });
+      $('monOnline').innerHTML = rows.length
+        ? rows.map(function(r){
+            return '<tr data-uid="' + r.uid + '" style="cursor:pointer" title="Открыть карточку игрока">'
+              + '<td>' + escapeHtml(r.name) + '</td><td class="nw">' + escapeHtml(fmtTs(r.until)) + '</td></tr>';
+          }).join('')
+        : '<tr><td colspan="2" class="dim">Сейчас никто не онлайн.</td></tr>';
+      Array.prototype.forEach.call($('monOnline').querySelectorAll('tr[data-uid]'), function(tr){
+        tr.addEventListener('click', function(){
+          focusUser(tr.getAttribute('data-uid'));
+        });
+      });
+      st.textContent = 'Обновлено: ' + new Date().toLocaleTimeString('ru-RU');
+      if (!silent) showToast('Мониторинг обновлён');
+    }).catch(function(e){
+      st.textContent = 'Ошибка обновления: ' + e.message;
+    });
+  }
+  $('btnRefresh').addEventListener('click', function(){ refreshMonitoring(false); });
+
+  function cardFrom(id, g, now){
+    return {
+      id: id, roomKey: g.roomKey || id, roomName: g.roomName || '',
+      roomNumber: g.roomNumber || 0, status: g.status || 'waiting',
+      playerX: g.playerX || null, playerO: g.playerO || null,
+      playerXName: g.playerXName || '', playerOName: g.playerOName || '',
+      createdBy: g.createdBy || null, createdByName: g.createdByName || '',
+      createdAt: g.createdAt || 0, gameStartTime: g.gameStartTime || null,
+      endedAt: g.endedAt || null, endReason: g.endReason || null,
+      winner: g.winner || null, pausedAt: g.pausedAt || null,
+      statsAppliedX: !!g.statsAppliedX, statsAppliedO: !!g.statsAppliedO,
+      changedAt: now, sortKey: g.changedAt || g.endedAt || g.createdAt || 0
+    };
+  }
+  function trimRoomsAdmin(rooms){
+    while (rooms.length > MAX_CATALOG_ROOMS) {
+      var idx = -1;
+      for (var i = 0; i < rooms.length; i++) {
+        if (rooms[i].status === 'completed' || rooms[i].status === 'cancelled') { idx = i; break; }
+      }
+      if (idx < 0) idx = 0;
+      rooms.splice(idx, 1);
+    }
+  }
+  function rebuildCatalog(){
+    var now = Date.now();
+    return db.collection('games').get().then(function(snap){
+      var cards = snap.docs.map(function(d){ return cardFrom(d.id, d.data(), now); });
+      cards.sort(function(a, b){ return (b.sortKey || 0) - (a.sortKey || 0); });
+      var rooms = cards.slice(0, MAX_CATALOG_ROOMS).map(function(c){
+        var c2 = Object.assign({}, c); delete c2.sortKey; return c2;
+      });
+      return db.collection('meta').doc('lobby').set({ rooms: rooms, updatedAt: now })
+        .then(function(){ return { games: snap.size, rooms: rooms.length }; });
+    });
+  }
+  $('btnRebuild').addEventListener('click', function(){
+    var b = $('btnRebuild'); b.disabled = true;
+    $('monStatus').textContent = 'Пересборка каталога...';
+    rebuildCatalog().then(function(res){
+      return logAction('rebuild_catalog', { games: res.games, rooms: res.rooms })
+        .then(function(){
+          $('monStatus').textContent = 'Каталог пересобран.';
+          showToast('Каталог пересобран'); refreshMonitoring(true);
+        });
+    }).catch(function(e){
+      $('monStatus').textContent = 'Ошибка: ' + e.message; showToast('Ошибка: ' + e.message);
+    }).then(function(){ b.disabled = false; });
+  });
+
+  /* ---------- ДВОРНИК: АЛГОРИТМ 1 ---------- */
+  function findStaleGames(thresholdMs){
+    var now = Date.now();
+    return db.collection('games').get().then(function(snap){
+      var all = [];
+      snap.docs.forEach(function(d){
+        var g = d.data();
+        var anchor = g.turnStartTime || g.gameStartTime || g.createdAt || 0;
+        if (!anchor) return;
+        var days = Math.floor((now - anchor) / DAY_MS);
+        all.push({
+          id: d.id,
+          room: g.roomName || d.id,
+          status: g.status || 'unknown',
+          creator: g.createdByName || g.createdBy || '—',
+          playerX: g.playerXName || '—',
+          playerO: g.playerOName || '—',
+          lastMove: anchor,
+          days: days,
+          stale: (now - anchor) > thresholdMs
+        });
+      });
+      return { all: all, stale: all.filter(function(r){ return r.stale; }) };
+    });
+  }
+  function janGamesDryRun(){
+    var st = $('janGamesStatus');
+    st.textContent = 'Пробный прогон: сканирование...';
+    var thresholdDays = state.cfg.janitor.staleGameDays || 5;
+    var thresholdMs = thresholdDays * DAY_MS;
+    var cutoff = Date.now() - thresholdMs;
+    findStaleGames(thresholdMs).then(function(res){
+      var c = $('janGamesDryList');
+      var rows = res.all.slice().sort(function(a, b){ return b.days - a.days; }).slice(0, 50);
+      var html = '<p class="dim small">Порог: ' + thresholdDays + ' дн. без ходов. Протухшей считается игра '
+        + 'с последним ходом ранее ' + escapeHtml(fmtTs(cutoff)) + '. '
+        + 'Ниже — все игры коллекции (до 50 строк), сортировка по возрасту последнего хода. '
+        + 'Кнопка «Состарить ход» — тестовая эмуляция: ставит turnStartTime на '
+        + (thresholdDays + 1) + ' дн. назад. Для playing/paused сначала выключи таймер хода '
+        + 'в окне игры (Ctrl+Alt+D), иначе клиент сам завершит партию по таймауту.</p>';
+      if (!rows.length) {
+        html += '<p class="dim">В коллекции games нет ни одной игры.</p>';
+      } else {
+        html += '<table><thead><tr><th>Комната</th><th>Статус</th><th>Создатель</th>'
+          + '<th>Последний ход</th><th>Дней без хода</th><th>Протухла</th><th>Тест</th></tr></thead><tbody>';
+        rows.forEach(function(r){
+          html += '<tr><td>' + escapeHtml(r.room) + '</td>'
+            + '<td class="nw">' + escapeHtml(r.status) + '</td>'
+            + '<td>' + escapeHtml(r.creator) + '</td>'
+            + '<td class="nw">' + escapeHtml(fmtTs(r.lastMove)) + '</td>'
+            + '<td>' + r.days + '</td>'
+            + '<td>' + (r.stale ? '<span class="bad">ДА</span>' : '<span class="ok">нет</span>') + '</td>'
+            + '<td><button class="small ghost" type="button" data-age="' + r.id + '" title="Тест: состарить последний ход">Состарить ход</button></td></tr>';
+        });
+        html += '</tbody></table>';
+      }
+      c.innerHTML = html;
+      Array.prototype.forEach.call(c.querySelectorAll('button[data-age]'), function(btn){
+        btn.addEventListener('click', function(){
+          var id = btn.getAttribute('data-age');
+          var days = thresholdDays + 1;
+          if (!window.confirm('Тестовая эмуляция: установить последний ход игры ' + id
+              + ' на ' + days + ' дн. назад? Реальные данные хода изменяются.')) return;
+          btn.disabled = true;
+          db.collection('games').doc(id).update({ turnStartTime: Date.now() - days * DAY_MS })
+            .then(function(){
+              showToast('Последний ход состарен на ' + days + ' дн.');
+              return janGamesDryRun();
+            })
+            .catch(function(e){
+              showToast('Ошибка: ' + e.message);
+              btn.disabled = false;
+            });
+        });
+      });
+      st.textContent = 'Пробный прогон завершён: протухших ' + res.stale.length
+        + ' из ' + res.all.length + '. Изменений не внесено.';
+    }).catch(function(e){
+      st.textContent = 'Ошибка пробного прогона: ' + e.message;
+    });
+  }
+  function janGamesRun(){
+    if (!window.confirm('Удалить все протухшие игры (без результата, без статистики)? Действие необратимо.')) return;
+    var st = $('janGamesStatus');
+    st.textContent = 'Дворник: удаление протухших игр...';
+    var thresholdMs = (state.cfg.janitor.staleGameDays || 5) * DAY_MS;
+    var removedIds = [];
+    findStaleGames(thresholdMs).then(function(res){
+      var chain = Promise.resolve();
+      res.stale.forEach(function(r){
+        chain = chain.then(function(){
+          return db.collection('games').doc(r.id).delete().then(function(){
+            return db.collection('activity').doc(r.id).delete().catch(function(){});
+          }).then(function(){
+            removedIds.push(r.id);
+          }).catch(function(e){
+            console.warn('Не удалось удалить игру ' + r.id + ':', e);
+          });
+        });
+      });
+      return chain.then(function(){
+        if (!removedIds.length) return { removed: removedIds, rebuilt: false };
+        return rebuildCatalog().then(function(){ return { removed: removedIds, rebuilt: true }; });
+      });
+    }).then(function(res){
+      return logAction('janitor_games', {
+        removed: res.removed.length,
+        ids: res.removed.slice(0, 20),
+        catalogRebuilt: res.rebuilt,
+        staleGameDays: state.cfg.janitor.staleGameDays
+      }).then(function(){
+        var msg = res.removed.length
+          ? ('Дворник: удалено протухших игр: ' + res.removed.length)
+          : 'Дворник: протухших игр не найдено.';
+        st.textContent = msg + ' Запуск завершён.';
+        showToast(res.removed.length ? ('Удалено игр: ' + res.removed.length) : 'Протухших игр нет');
+        refreshMonitoring(true);
+        loadJanGamesHistory();
+      });
+    }).catch(function(e){
+      st.textContent = 'Ошибка: ' + e.message;
+      showToast('Ошибка: ' + e.message);
+    });
+  }
+  function loadJanGamesHistory(){
+    var c = $('janGamesHistory');
+    c.innerHTML = '<p class="dim">Загрузка...</p>';
+    db.collection('adminlog').orderBy('ts', 'desc').limit(200).get().then(function(snap){
+      var rows = [];
+      snap.docs.forEach(function(d){
+        var v = d.data();
+        if (v.action === 'janitor_games') rows.push(v);
+      });
+      if (!rows.length) {
+        c.innerHTML = '<p class="dim">Запусков ещё не было.</p>';
+        return;
+      }
+      var html = '<table><thead><tr><th>Время</th><th>Админ</th><th>Удалено</th>'
+        + '<th>Порог, дн.</th><th>Игры (id)</th></tr></thead><tbody>';
+      rows.slice(0, 20).forEach(function(v){
+        var det = v.details || {};
+        var ids = Array.isArray(det.ids) ? det.ids.join(', ') : '';
+        html += '<tr><td class="nw">' + escapeHtml(fmtTs(v.ts)) + '</td>'
+          + '<td>' + escapeHtml(v.adminName || '—') + '</td>'
+          + '<td>' + escapeHtml(String(det.removed != null ? det.removed : '—')) + '</td>'
+          + '<td>' + escapeHtml(String(det.staleGameDays != null ? det.staleGameDays : '—')) + '</td>'
+          + '<td class="small">' + escapeHtml(ids) + '</td></tr>';
+      });
+      html += '</tbody></table>';
+      c.innerHTML = html;
+    }).catch(function(e){
+      c.innerHTML = '<p class="dim">Ошибка истории: ' + escapeHtml(e.message) + '</p>';
+    });
+  }
+  $('btnJanGamesDry').addEventListener('click', janGamesDryRun);
+  $('btnJanGamesRun').addEventListener('click', janGamesRun);
+
+  $('btnMonJanitor').addEventListener('click', function(){
+    if (!window.confirm('Запустить дворник (протухшие игры)? Игры без ходов ≥ '
+        + state.cfg.janitor.staleGameDays + ' дн. будут удалены без результата.')) return;
+    var st = $('monStatus');
+    st.textContent = 'Дворник: удаление протухших игр...';
+    var thresholdMs = (state.cfg.janitor.staleGameDays || 5) * DAY_MS;
+    var removedIds = [];
+    findStaleGames(thresholdMs).then(function(res){
+      var chain = Promise.resolve();
+      res.stale.forEach(function(r){
+        chain = chain.then(function(){
+          return db.collection('games').doc(r.id).delete().then(function(){
+            return db.collection('activity').doc(r.id).delete().catch(function(){});
+          }).then(function(){
+            removedIds.push(r.id);
+          }).catch(function(e){
+            console.warn('Не удалось удалить игру ' + r.id + ':', e);
+          });
+        });
+      });
+      return chain.then(function(){
+        if (!removedIds.length) return { removed: removedIds, rebuilt: false };
+        return rebuildCatalog().then(function(){ return { removed: removedIds, rebuilt: true }; });
+      });
+    }).then(function(res){
+      return logAction('janitor_games', {
+        removed: res.removed.length,
+        ids: res.removed.slice(0, 20),
+        catalogRebuilt: res.rebuilt,
+        staleGameDays: state.cfg.janitor.staleGameDays
+      }).then(function(){
+        var msg = res.removed.length
+          ? ('Дворник: удалено протухших игр: ' + res.removed.length)
+          : 'Дворник: протухших игр не найдено.';
+        st.textContent = msg;
+        showToast(res.removed.length ? ('Удалено игр: ' + res.removed.length) : 'Протухших игр нет');
+        refreshMonitoring(true);
+      });
+    }).catch(function(e){
+      st.textContent = 'Ошибка: ' + e.message;
+      showToast('Ошибка: ' + e.message);
+    });
+  });
+
+  /* ---------- ДВОРНИК: АЛГОРИТМ 2 ---------- */
+  function findStaleAccounts(thresholdMs){
+    var now = Date.now();
+    return db.collection('users').get().then(function(snap){
+      var all = [];
+      snap.docs.forEach(function(d){
+        var u = d.data();
+        var anchor = u.lastLoginAt || u.createdAt || 0;
+        if (!anchor) return;
+        var days = Math.floor((now - anchor) / DAY_MS);
+        all.push({
+          uid: d.id,
+          name: u.username || d.id,
+          email: (u.username || d.id).toLowerCase() + EMAIL_DOMAIN,
+          lastLogin: anchor,
+          days: days,
+          stale: (now - anchor) > thresholdMs,
+          statsSnapshot: {
+            wins: num(u.wins),
+            losses: num(u.losses),
+            noResult: num(u.noResult),
+            gamesAsX: num(u.gamesAsX),
+            gamesAsO: num(u.gamesAsO)
+          }
+        });
+      });
+      return { all: all, stale: all.filter(function(r){ return r.stale; }) };
+    });
+  }
+  function countActiveGamesOf(uid){
+    return Promise.all([
+      db.collection('games').where('playerX', '==', uid).where('status', 'in', ['waiting','playing','paused']).get(),
+      db.collection('games').where('playerO', '==', uid).where('status', 'in', ['waiting','playing','paused']).get()
+    ]).then(function(res){
+      var ids = {};
+      var n = 0;
+      res[0].docs.forEach(function(d){ if (!ids[d.id]) { ids[d.id] = true; n++; } });
+      res[1].docs.forEach(function(d){ if (!ids[d.id]) { ids[d.id] = true; n++; } });
+      return n;
+    });
+  }
+  function janAccDryRun(){
+    var st = $('janAccStatus');
+    st.textContent = 'Пробный прогон: сканирование...';
+    var thresholdMs = (state.cfg.janitor.staleAccountDays || 30) * DAY_MS;
+    findStaleAccounts(thresholdMs).then(function(res){
+      var chain = Promise.resolve();
+      res.stale.forEach(function(r){
+        chain = chain.then(function(){
+          return countActiveGamesOf(r.uid).then(function(n){
+            r.activeGames = n;
+          });
+        });
+      });
+      return chain.then(function(){
+        var c = $('janAccDryList');
+        if (!res.stale.length) {
+          c.innerHTML = '<p class="dim">Нечего удалять: протухших аккаунтов не найдено '
+            + '(просмотрено всех пользователей: ' + res.all.length + ').</p>';
+        } else {
+          var html = '<table><thead><tr><th>Имя</th><th>UID</th><th>Последний вход</th>'
+            + '<th>Дней с входа</th><th>Активных игр</th></tr></thead><tbody>';
+          res.stale.forEach(function(r){
+            html += '<tr><td>' + escapeHtml(r.name) + '</td>'
+              + '<td class="small mono">' + r.uid + '</td>'
+              + '<td class="nw">' + escapeHtml(fmtTs(r.lastLogin)) + '</td>'
+              + '<td>' + r.days + '</td>'
+              + '<td>' + (r.activeGames != null ? r.activeGames : '—') + '</td></tr>';
+          });
+          html += '</tbody></table>';
+          c.innerHTML = html;
+        }
+        st.textContent = 'Пробный прогон завершён: будет удалено ' + res.stale.length
+          + ' аккаунтов. Никаких изменений не внесено.';
+      });
+    }).catch(function(e){
+      st.textContent = 'Ошибка пробного прогона: ' + e.message;
+    });
+  }
+  function janAccRun(){
+    if (!window.confirm('Удалить все протухшие аккаунты? Активные игры будут удалены без результата, '
+        + 'профили удалены с созданием карточек в /trash (для ручной зачистки Auth). Действие необратимо.')) return;
+    var st = $('janAccStatus');
+    st.textContent = 'Дворник: удаление протухших аккаунтов...';
+    var thresholdMs = (state.cfg.janitor.staleAccountDays || 30) * DAY_MS;
+    var report = [];
+    findStaleAccounts(thresholdMs).then(function(res){
+      var chain = Promise.resolve();
+      res.stale.forEach(function(r){
+        chain = chain.then(function(){
+          return countActiveGamesOf(r.uid).then(function(count){
+            var ids = [];
+            return Promise.all([
+              db.collection('games').where('playerX', '==', r.uid).where('status', 'in', ['waiting','playing','paused']).get(),
+              db.collection('games').where('playerO', '==', r.uid).where('status', 'in', ['waiting','playing','paused']).get()
+            ]).then(function(rr){
+              rr[0].docs.forEach(function(d){ if (ids.indexOf(d.id) < 0) ids.push(d.id); });
+              rr[1].docs.forEach(function(d){ if (ids.indexOf(d.id) < 0) ids.push(d.id); });
+              var purgeChain = Promise.resolve();
+              ids.forEach(function(gameId){
+                purgeChain = purgeChain.then(function(){
+                  return db.collection('games').doc(gameId).delete().then(function(){
+                    return db.collection('activity').doc(gameId).delete().catch(function(){});
+                  }).catch(function(e){
+                    console.warn('Не удалось удалить игру ' + gameId + ':', e);
+                  });
+                });
+              });
+              return purgeChain;
+            }).then(function(){
+              var trashDoc = {
+                uid: r.uid,
+                name: r.name,
+                email: r.email,
+                deletedAt: Date.now(),
+                deletedBy: state.name,
+                reason: 'janitor_stale_account',
+                staleAccountDays: state.cfg.janitor.staleAccountDays,
+                statsSnapshot: r.statsSnapshot,
+                activeGamesPurged: ids.length,
+                authPurged: false,
+                authPurgedAt: null,
+                authPurgedBy: null
+              };
+              return db.collection('trash').doc(r.uid).set(trashDoc);
+            }).then(function(){
+              return db.collection('users').doc(r.uid).delete();
+            }).then(function(){
+              report.push({ uid: r.uid, name: r.name, activeGames: ids.length });
+            }).catch(function(e){
+              console.warn('Не удалось удалить аккаунт ' + r.uid + ':', e);
+            });
+          });
+        });
+      });
+      return chain.then(function(){
+        if (!report.length) return { report: report, rebuilt: false };
+        return rebuildCatalog().then(function(){ return { report: report, rebuilt: true }; });
+      });
+    }).then(function(res){
+      return logAction('janitor_accounts', {
+        removed: res.report.length,
+        accounts: res.report.slice(0, 20),
+        catalogRebuilt: res.rebuilt,
+        staleAccountDays: state.cfg.janitor.staleAccountDays
+      }).then(function(){
+        var msg = res.report.length
+          ? ('Дворник: удалено протухших аккаунтов: ' + res.report.length + ' (карточки в /trash)')
+          : 'Дворник: протухших аккаунтов не найдено.';
+        st.textContent = msg + ' Запуск завершён.';
+        showToast(res.report.length ? ('Удалено аккаунтов: ' + res.report.length) : 'Протухших аккаунтов нет');
+        refreshMonitoring(true);
+        loadJanAccHistory();
+        loadTrash();
+      });
+    }).catch(function(e){
+      st.textContent = 'Ошибка: ' + e.message;
+      showToast('Ошибка: ' + e.message);
+    });
+  }
+  function loadJanAccHistory(){
+    var c = $('janAccHistory');
+    c.innerHTML = '<p class="dim">Загрузка...</p>';
+    db.collection('adminlog').orderBy('ts', 'desc').limit(200).get().then(function(snap){
+      var rows = [];
+      snap.docs.forEach(function(d){
+        var v = d.data();
+        if (v.action === 'janitor_accounts') rows.push(v);
+      });
+      if (!rows.length) {
+        c.innerHTML = '<p class="dim">Запусков ещё не было.</p>';
+        return;
+      }
+      var html = '<table><thead><tr><th>Время</th><th>Админ</th><th>Удалено</th>'
+        + '<th>Порог, дн.</th><th>Аккаунты (имя)</th></tr></thead><tbody>';
+      rows.slice(0, 20).forEach(function(v){
+        var det = v.details || {};
+        var names = Array.isArray(det.accounts)
+          ? det.accounts.map(function(a){ return a.name; }).join(', ')
+          : '';
+        html += '<tr><td class="nw">' + escapeHtml(fmtTs(v.ts)) + '</td>'
+          + '<td>' + escapeHtml(v.adminName || '—') + '</td>'
+          + '<td>' + escapeHtml(String(det.removed != null ? det.removed : '—')) + '</td>'
+          + '<td>' + escapeHtml(String(det.staleAccountDays != null ? det.staleAccountDays : '—')) + '</td>'
+          + '<td class="small">' + escapeHtml(names) + '</td></tr>';
+      });
+      html += '</tbody></table>';
+      c.innerHTML = html;
+    }).catch(function(e){
+      c.innerHTML = '<p class="dim">Ошибка истории: ' + escapeHtml(e.message) + '</p>';
+    });
+  }
+  $('btnJanAccDry').addEventListener('click', janAccDryRun);
+  $('btnJanAccRun').addEventListener('click', janAccRun);
+
+  /* ---------- КОРЗИНА ---------- */
+  function loadTrash(){
+    var st = $('trashStatus');
+    st.textContent = 'Загрузка...';
+    db.collection('trash').get().then(function(snap){
+      if (snap.empty) {
+        $('trashList').innerHTML = '<p class="dim">Корзина пуста.</p>';
+        st.textContent = 'Загружено: ' + new Date().toLocaleTimeString('ru-RU') + ' (карточек: 0)';
+        return;
+      }
+      var items = snap.docs.map(function(d){
+        var data = d.data();
+        data._docId = d.id;
+        return data;
+      }).sort(function(a, b){
+        return (b.deletedAt || 0) - (a.deletedAt || 0);
+      });
+      var html = '<table><thead><tr><th>Имя</th><th>UID</th><th>Email</th>'
+        + '<th>Удалён</th><th>Кем / причина</th><th>Auth</th><th>Действия</th></tr></thead><tbody>';
+      items.forEach(function(it){
+        var authStatus = it.authPurged
+          ? '<span class="trash-ok">Зачищен ' + escapeHtml(fmtTs(it.authPurgedAt))
+            + ' (' + escapeHtml(it.authPurgedBy || '—') + ')</span>'
+          : '<span class="trash-warn">Ожидает зачистки в консоли</span>';
+        html += '<tr data-docid="' + it._docId + '">'
+          + '<td>' + escapeHtml(it.name || '—') + '</td>'
+          + '<td class="small mono">' + escapeHtml(it.uid || '—') + '</td>'
+          + '<td class="small">' + escapeHtml(it.email || '—') + '</td>'
+          + '<td class="nw">' + escapeHtml(fmtTs(it.deletedAt)) + '</td>'
+          + '<td class="small">' + escapeHtml(it.deletedBy || '—')
+            + ' / ' + escapeHtml(it.reason || '—') + '</td>'
+          + '<td>' + authStatus + '</td>'
+          + '<td class="trash-actions">'
+            + '<button class="small ghost" type="button" data-copy="uid" data-docid="' + it._docId + '">UID</button>'
+            + '<button class="small ghost" type="button" data-copy="email" data-docid="' + it._docId + '">Email</button>'
+            + '<button class="small" type="button" data-auth="purge" data-docid="' + it._docId + '"'
+              + (it.authPurged ? ' disabled' : '') + '>Auth удалён</button>'
+            + '<button class="small danger" type="button" data-trash="remove" data-docid="' + it._docId + '">Убрать</button>'
+            + '</td>'
+          + '</tr>';
+      });
+      html += '</tbody></table>';
+      $('trashList').innerHTML = html;
+      st.textContent = 'Загружено: ' + new Date().toLocaleTimeString('ru-RU') + ' (карточек: ' + items.length + ')';
+
+      Array.prototype.forEach.call($('trashList').querySelectorAll('button[data-copy]'), function(btn){
+        btn.addEventListener('click', function(){
+          var docId = btn.getAttribute('data-docid');
+          var it = null;
+          for (var i = 0; i < items.length; i++) if (items[i]._docId === docId) { it = items[i]; break; }
+          if (!it) return;
+          var text = (btn.getAttribute('data-copy') === 'uid') ? it.uid : it.email;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function(){
+              showToast('Скопировано: ' + text);
+            }).catch(function(){
+              showToast('Не удалось скопировать');
+            });
+          } else {
+            showToast('Clipboard API недоступен: ' + text);
+          }
+        });
+      });
+      Array.prototype.forEach.call($('trashList').querySelectorAll('button[data-auth]'), function(btn){
+        btn.addEventListener('click', function(){
+          var docId = btn.getAttribute('data-docid');
+          var it = null;
+          for (var i = 0; i < items.length; i++) if (items[i]._docId === docId) { it = items[i]; break; }
+          if (!it || it.authPurged) return;
+          if (!window.confirm('Отметить, что Auth для uid ' + it.uid + ' удалён в консоли Firebase?')) return;
+          btn.disabled = true;
+          db.collection('trash').doc(docId).update({
+            authPurged: true,
+            authPurgedAt: Date.now(),
+            authPurgedBy: state.name
+          }).then(function(){
+            return logAction('trash_auth_purged', { uid: it.uid, name: it.name });
+          }).then(function(){
+            showToast('Auth отмечен зачищенным');
+            loadTrash();
+          }).catch(function(e){
+            showToast('Ошибка: ' + e.message);
+            btn.disabled = false;
+          });
+        });
+      });
+      Array.prototype.forEach.call($('trashList').querySelectorAll('button[data-trash]'), function(btn){
+        btn.addEventListener('click', function(){
+          var docId = btn.getAttribute('data-docid');
+          var it = null;
+          for (var i = 0; i < items.length; i++) if (items[i]._docId === docId) { it = items[i]; break; }
+          if (!it) return;
+          if (!it.authPurged) {
+            if (!window.confirm('Auth ещё НЕ зачищен. Если убрать карточку сейчас и запись Auth осталась, '
+                + 'вход сможет пересоздать профиль. Продолжить?')) return;
+          } else {
+            if (!window.confirm('Убрать карточку ' + it.name + ' из корзины?')) return;
+          }
+          btn.disabled = true;
+          db.collection('trash').doc(docId).delete().then(function(){
+            return logAction('trash_removed', { uid: it.uid, name: it.name, authPurged: !!it.authPurged });
+          }).then(function(){
+            showToast('Карточка удалена из корзины');
+            loadTrash();
+          }).catch(function(e){
+            showToast('Ошибка: ' + e.message);
+            btn.disabled = false;
+          });
+        });
+      });
+    }).catch(function(e){
+      $('trashList').innerHTML = '<p class="dim">Ошибка: ' + escapeHtml(e.message) + '</p>';
+      st.textContent = 'Ошибка';
+    });
+  }
+  $('btnTrashRefresh').addEventListener('click', loadTrash);
+
+  /* ---------- СИРОТЫ activity ---------- */
+  function purgeOrphanActivity(){
+    var st = $('actOrphansStatus');
+    st.textContent = 'Сканирование activity и games...';
+    Promise.all([
+      db.collection('activity').get(),
+      db.collection('games').get()
+    ]).then(function(res){
+      var gameIds = {};
+      res[1].docs.forEach(function(d){ gameIds[d.id] = true; });
+      var orphans = [];
+      res[0].docs.forEach(function(d){ if (!gameIds[d.id]) orphans.push(d.id); });
+      if (!orphans.length) {
+        st.textContent = 'Сирот не найдено (activity: ' + res[0].size + ', games: ' + res[1].size + ').';
+        $('actOrphansList').innerHTML = '<p class="dim">Удалять нечего.</p>';
+        return;
+      }
+      $('actOrphansList').innerHTML = '<p class="dim small mono">' + escapeHtml(orphans.join(', ')) + '</p>';
+      if (!window.confirm('Удалить сиротских документов activity: ' + orphans.length + '?')) {
+        st.textContent = 'Удаление отменено. Найдено сирот: ' + orphans.length + ' (список выше).';
+        return;
+      }
+      st.textContent = 'Удаление сирот...';
+      var chain = Promise.resolve();
+      var removed = 0;
+      orphans.forEach(function(id){
+        chain = chain.then(function(){
+          return db.collection('activity').doc(id).delete().then(function(){ removed++; })
+            .catch(function(e){ console.warn('Не удалось удалить activity ' + id + ':', e); });
+        });
+      });
+      return chain.then(function(){
+        return logAction('activity_orphans_purged', { removed: removed, ids: orphans.slice(0, 20) });
+      }).then(function(){
+        st.textContent = 'Удалено сирот activity: ' + removed + ' из ' + orphans.length + '.';
+        showToast('Сирот activity удалено: ' + removed);
+        $('actOrphansList').innerHTML = '<p class="dim">После очистки сирот не осталось.</p>';
+      });
+    }).catch(function(e){
+      st.textContent = 'Ошибка: ' + e.message;
+    });
+  }
+  $('btnActOrphans').addEventListener('click', purgeOrphanActivity);
+
+  /* ---------- ЖУРНАЛ ---------- */
+  function logAction(action, details){
+    return db.collection('adminlog').add({
+      ts: Date.now(), adminUid: state.uid, adminName: state.name,
+      action: action, details: details || {}
+    }).catch(function(e){ console.warn('adminlog write failed:', e); });
+  }
+  function loadLog(){
+    var st = $('logStatus'); st.textContent = 'Загрузка...';
+    db.collection('adminlog').orderBy('ts', 'desc').limit(100).get()
+      .then(function(snap){
+        if (snap.empty) {
+          $('logBody').innerHTML = '<tr><td colspan="4" class="dim">Журнал пока пуст.</td></tr>';
+        } else {
+          $('logBody').innerHTML = snap.docs.map(function(d){
+            var v = d.data();
+            return '<tr><td class="nw">' + escapeHtml(fmtTs(v.ts)) + '</td>'
+              + '<td>' + escapeHtml(v.adminName || v.adminUid || '—') + '</td>'
+              + '<td class="nw">' + escapeHtml(v.action || '—') + '</td>'
+              + '<td class="small">' + escapeHtml(JSON.stringify(v.details || {})) + '</td></tr>';
+          }).join('');
+        }
+        st.textContent = 'Загружено: ' + new Date().toLocaleTimeString('ru-RU') + ' (записей: ' + snap.size + ')';
+      })
+      .catch(function(e){ st.textContent = 'Ошибка журнала: ' + e.message; });
+  }
+  $('btnLogRefresh').addEventListener('click', function(){ loadLog(); });
+
+  /* ---------- НАСТРОЙКИ: ОБРАБОТЧИКИ ---------- */
+  $('btnSaveConfig').addEventListener('click', saveConfig);
+  $('btnResetConfig').addEventListener('click', function(){
+    fillCfgForm(mergeConfig(null));
+    showToast('Заполнены значения по умолчанию — нажми «Сохранить»');
+  });
+
+  /* ---------- ТОП ---------- */
+  function loadTop(){
+    var st = $('topStatus');
+    st.textContent = 'Загрузка...';
+    $('btnTopRefresh').disabled = true;
+    Promise.all([
+      db.collection('users').get(),
+      db.collection('games').get()
+    ]).then(function(res){
+      state.topUsers = res[0].docs.map(function(d){
+        var u = d.data(); u._uid = d.id; return u;
+      });
+      state.topGames = res[1].docs.map(function(d){
+        var g = d.data(); g._id = d.id; return g;
+      });
+      renderTop();
+      st.textContent = 'Обновлено: ' + new Date().toLocaleTimeString('ru-RU');
+      $('btnTopRefresh').disabled = false;
+    }).catch(function(e){
+      st.textContent = 'Ошибка загрузки: ' + e.message;
+      $('btnTopRefresh').disabled = false;
+    });
+  }
+  function computeTopAgg(){
+    var games = state.topGames;
+    var completedWin = 0, cancelledNo = 0, playingPaused = 0, waiting = 0;
+    var durSum = 0, durCount = 0, movesSum = 0, winsX = 0, winsO = 0;
+    games.forEach(function(g){
+      if (g.status === 'completed') {
+        if (g.winner) {
+          completedWin++;
+          if (g.winner === 'X') winsX++; else winsO++;
+        } else {
+          cancelledNo++;
+        }
+        if (g.gameStartTime && g.endedAt && g.endedAt > g.gameStartTime) {
+          durSum += (g.endedAt - g.gameStartTime - (g.pausedTotalMs || 0));
+          durCount++;
+        }
+      } else if (g.status === 'cancelled') {
+        cancelledNo++;
+      } else if (g.status === 'waiting') {
+        waiting++;
+      } else {
+        playingPaused++;
+      }
+      if (g.moves) movesSum += Object.keys(g.moves).length;
+    });
+    var rated = state.topUsers.filter(function(u){
+      return (num(u.wins) + num(u.losses) + num(u.noResult)) > 0;
+    }).length;
+    return {
+      rated: rated,
+      total: games.length,
+      completedWin: completedWin,
+      cancelledNo: cancelledNo,
+      waiting: waiting,
+      playingPaused: playingPaused,
+      avgDur: durCount ? Math.round(durSum / durCount) : 0,
+      durCount: durCount,
+      movesSum: movesSum,
+      winsX: winsX,
+      winsO: winsO
+    };
+  }
+  function statCard(v, k){
+    return '<div class="stat"><div class="v">' + escapeHtml(String(v)) + '</div>'
+      + '<div class="k">' + escapeHtml(k) + '</div></div>';
+  }
+  function renderTop(){
+    var agg = computeTopAgg();
+    $('topAgg').innerHTML =
+      statCard(agg.rated, 'игроков в рейтинге') +
+      statCard(agg.total, 'всего игр') +
+      statCard(agg.completedWin, 'завершено с победой') +
+      statCard(agg.cancelledNo, 'отменено без результата') +
+      statCard(agg.waiting, 'комнат waiting') +
+      statCard(agg.playingPaused, 'playing и paused') +
+      statCard(fmtDur(agg.avgDur), 'средняя длительность (партий: ' + agg.durCount + ')') +
+      statCard(agg.movesSum, 'всего ходов во всех играх') +
+      statCard(agg.winsX + ' / ' + agg.winsO, 'побед X / побед O');
+
+    var rows = state.topUsers.map(function(u){
+      var w = num(u.wins), l = num(u.losses), n = num(u.noResult);
+      var gx = num(u.gamesAsX), go = num(u.gamesAsO);
+      var t = w + l + n;
+      var rate = t > 0 ? Math.round(100 * w / t) : 0;
+      return { name: u.username || u._uid, w: w, l: l, n: n, t: t, rate: rate, gx: gx, go: go };
+    });
+    var sort = $('topSort').value;
+    if (sort === 'rate') {
+      rows = rows.filter(function(r){ return r.t >= MIN_GAMES_FOR_RATE; });
+      rows.sort(function(a, b){ return (b.rate - a.rate) || (b.w - a.w); });
+    } else if (sort === 'games') {
+      rows.sort(function(a, b){ return (b.t - a.t) || (b.w - a.w); });
+    } else {
+      rows.sort(function(a, b){ return (b.w - a.w) || (b.t - a.t); });
+    }
+    if (!rows.length) {
+      $('topTable').innerHTML = '<p class="dim">Недостаточно данных для выбранной сортировки.</p>';
+      return;
+    }
+    var html = '<table><thead><tr><th>№</th><th>Имя</th><th>Победы</th><th>Поражения</th>'
+      + '<th>Без результата</th><th>Всего игр</th><th>Процент побед</th>'
+      + '<th>Игр за X</th><th>Игр за O</th></tr></thead><tbody>';
+    rows.forEach(function(r, i){
+      html += '<tr><td>' + (i + 1) + '</td><td>' + escapeHtml(r.name) + '</td>'
+        + '<td>' + r.w + '</td><td>' + r.l + '</td><td>' + r.n + '</td>'
+        + '<td>' + r.t + '</td><td>' + r.rate + '%</td>'
+        + '<td>' + r.gx + '</td><td>' + r.go + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    $('topTable').innerHTML = html;
+  }
+  $('btnTopRefresh').addEventListener('click', loadTop);
+  $('topSort').addEventListener('change', function(){
+    if (state.topUsers.length) renderTop();
+  });
+
+  /* ---------- ПОЛЬЗОВАТЕЛИ ---------- */
+  function loadAllUsers(){
+    var st = $('userSearchStatus');
+    st.textContent = 'Загрузка списка...';
+    $('btnUserLoadAll').disabled = true;
+    return db.collection('users').get().then(function(snap){
+      state.allUsers = snap.docs.map(function(d){
+        var data = d.data();
+        data._uid = d.id;
+        return data;
+      }).sort(function(a,b){
+        return (b.lastLoginAt || b.createdAt || 0) - (a.lastLoginAt || a.createdAt || 0);
+      });
+      renderUserTable(state.allUsers);
+      st.textContent = 'Загружено пользователей: ' + state.allUsers.length + '. Поиск работает по списку.';
+      $('btnUserLoadAll').disabled = false;
+    }).catch(function(e){
+      st.textContent = 'Ошибка загрузки: ' + e.message;
+      $('btnUserLoadAll').disabled = false;
+    });
+  }
+
+  function renderUserTable(users){
+    var container = $('userSearchResults');
+    if (!users.length) {
+      container.innerHTML = '<p class="dim">Список пуст или ничего не найдено.</p>';
+      return;
+    }
+    var html = '<table><thead><tr><th>Имя</th><th>UID</th><th>Последний вход</th><th>Статус</th></tr></thead><tbody>';
+    users.forEach(function(u){
+      var name = u.username || '—';
+      var status = u.banned ? '<span class="bad">Забанен</span>' : '<span class="ok">Активен</span>';
+      var lastSeen = (u.lastLoginAt || u.createdAt) ? fmtTs(u.lastLoginAt || u.createdAt) : 'никогда';
+      html += '<tr style="cursor:pointer" data-uid="' + u._uid + '">'
+        + '<td>' + escapeHtml(name) + '</td>'
+        + '<td class="small mono">' + u._uid + '</td>'
+        + '<td class="nw">' + escapeHtml(lastSeen) + '</td>'
+        + '<td>' + status + '</td>'
+        + '</tr>';
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+
+    Array.prototype.forEach.call(container.querySelectorAll('tr[data-uid]'), function(tr){
+      tr.addEventListener('click', function(){
+        var uid = tr.getAttribute('data-uid');
+        var user = null;
+        for (var i = 0; i < state.allUsers.length; i++) {
+          if (state.allUsers[i]._uid === uid) { user = state.allUsers[i]; break; }
+        }
+        if (user) openUserCard(user);
+      });
+    });
+  }
+
+  function openUserCard(u){
+    state.currentEditUser = u;
+    var c = $('userCardContainer');
+    c.classList.remove('hidden');
+    $('cardName').textContent = u.username || '—';
+    $('cardUid').textContent = u._uid;
+    $('cardCreated').textContent = fmtTs(u.createdAt);
+    $('cardLastLogin').textContent = u.lastLoginAt ? fmtTs(u.lastLoginAt) : 'никогда';
+    var lease = u.sessionLeaseUntil;
+    if (lease && lease > Date.now()) {
+      $('cardSession').innerHTML = '<span class="ok">Активна до ' + fmtTs(lease) + '</span>';
+    } else {
+      $('cardSession').innerHTML = '<span class="dim">Нет активной сессии</span>';
+    }
+
+    var isBanned = !!u.banned;
+    $('cardBannedBadge').style.display = isBanned ? 'block' : 'none';
+    $('btnToggleBan').textContent = isBanned ? 'Разбанить' : 'Забанить';
+    $('btnToggleBan').style.background = isBanned ? 'var(--ok)' : 'var(--bad)';
+    $('btnToggleBan').style.color = isBanned ? '#06111c' : '#fff';
+
+    $('cardWins').textContent = u.wins || 0;
+    $('cardLosses').textContent = u.losses || 0;
+    $('cardNoResult').textContent = u.noResult || 0;
+    $('cardGamesX').textContent = u.gamesAsX || 0;
+    $('cardGamesO').textContent = u.gamesAsO || 0;
+
+    $('cardEditForm').classList.add('hidden');
+    ['editWins','editLosses','editNoResult','editGamesX','editGamesO'].forEach(function(id){ $(id).value = ''; });
+
+    c.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  function toggleBan(){
+    if (!state.currentEditUser) return;
+    var u = state.currentEditUser;
+    var newBan = !u.banned;
+    var btn = $('btnToggleBan');
+    btn.disabled = true;
+    var actionName = newBan ? 'ban_user' : 'unban_user';
+
+    db.collection('users').doc(u._uid).update({ banned: newBan })
+      .then(function(){
+        return logAction(actionName, { uid: u._uid, name: u.username });
+      })
+      .then(function(){
+        u.banned = newBan;
+        openUserCard(u);
+        renderUserTable(state.allUsers);
+        showToast(newBan ? 'Пользователь забанен' : 'Пользователь разбанен');
+      })
+      .catch(function(e){
+        showToast('Ошибка бана: ' + e.message);
+      })
+      .then(function(){
+        btn.disabled = false;
+      });
+  }
+
+  function saveStats(){
+    if (!state.currentEditUser) return;
+    var u = state.currentEditUser;
+    var updates = {};
+    var map = {
+      editWins: 'wins',
+      editLosses: 'losses',
+      editNoResult: 'noResult',
+      editGamesX: 'gamesAsX',
+      editGamesO: 'gamesAsO'
+    };
+    var hasChanges = false;
+    Object.keys(map).forEach(function(inputId){
+      var val = $(inputId).value.trim();
+      if (val !== '') {
+        var n = parseInt(val, 10);
+        if (!isNaN(n) && n >= 0) {
+          updates[map[inputId]] = n;
+          hasChanges = true;
+        }
+      }
+    });
+
+    if (!hasChanges) {
+      showToast('Введи хотя бы одно число');
+      return;
+    }
+
+    var btn = $('btnSaveStats');
+    btn.disabled = true;
+
+    db.collection('users').doc(u._uid).update(updates)
+      .then(function(){
+        return logAction('edit_stats', { uid: u._uid, name: u.username, changes: updates });
+      })
+      .then(function(){
+        Object.assign(u, updates);
+        openUserCard(u);
+        renderUserTable(state.allUsers);
+        showToast('Статистика обновлена');
+      })
+      .catch(function(e){
+        showToast('Ошибка сохранения: ' + e.message);
+      })
+      .then(function(){
+        btn.disabled = false;
+      });
+  }
+
+  $('btnUserLoadAll').addEventListener('click', function(){ loadAllUsers(); });
+  $('btnCloseCard').addEventListener('click', function(){
+    $('userCardContainer').classList.add('hidden');
+    state.currentEditUser = null;
+  });
+  $('btnToggleBan').addEventListener('click', toggleBan);
+  $('btnEditStats').addEventListener('click', function(){
+    $('cardEditForm').classList.toggle('hidden');
+  });
+  $('btnCancelStats').addEventListener('click', function(){
+    $('cardEditForm').classList.add('hidden');
+  });
+  $('btnSaveStats').addEventListener('click', saveStats);
+  $('userSearchInput').addEventListener('input', function(){
+    var q = ($('userSearchInput').value || '').trim().toLowerCase();
+    if (!state.allUsers.length) return;
+    if (!q) {
+      renderUserTable(state.allUsers);
+      return;
+    }
+    var filtered = state.allUsers.filter(function(u){
+      return (u.username && u.username.toLowerCase().indexOf(q) !== -1)
+          || (u._uid && u._uid.toLowerCase().indexOf(q) !== -1);
+    });
+    renderUserTable(filtered);
+  });
+
+  /* ---------- ИГРЫ ---------- */
+  function loadGames(){
+    var st = $('gamesStatus');
+    st.textContent = 'Загрузка списка игр...';
+    $('btnGamesLoad').disabled = true;
+    db.collection('games').get().then(function(snap){
+      state.allGames = snap.docs.map(function(d){
+        var g = d.data();
+        g._id = d.id;
+        return g;
+      }).sort(function(a, b){
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      });
+      renderGamesList();
+      st.textContent = 'Загружено игр: ' + state.allGames.length + '. Фильтр и поиск работают по списку.';
+      $('btnGamesLoad').disabled = false;
+    }).catch(function(e){
+      st.textContent = 'Ошибка загрузки: ' + e.message;
+      $('btnGamesLoad').disabled = false;
+    });
+  }
+
+  function filteredGames(){
+    var f = $('gamesFilter').value;
+    var q = ($('gamesSearch').value || '').trim().toLowerCase();
+    return state.allGames.filter(function(g){
+      if (f !== 'all' && g.status !== f) return false;
+      if (!q) return true;
+      return ((g.roomName || '').toLowerCase().indexOf(q) !== -1)
+          || ((g.roomKey || '').toLowerCase().indexOf(q) !== -1)
+          || ((g._id || '').toLowerCase().indexOf(q) !== -1);
+    });
+  }
+
+  function renderGamesList(){
+    var rows = filteredGames();
+    var c = $('gamesList');
+    if (!rows.length) {
+      c.innerHTML = '<p class="dim">Ничего не найдено.</p>';
+      return;
+    }
+    var html = '<table><thead><tr><th>Комната</th><th>Статус</th><th>Игроки</th><th>Создатель</th><th>Создана</th></tr></thead><tbody>';
+    rows.forEach(function(g){
+      html += '<tr style="cursor:pointer" data-gid="' + g._id + '">'
+        + '<td>' + escapeHtml(g.roomName || g._id) + '</td>'
+        + '<td class="nw">' + escapeHtml(g.status || '—') + '</td>'
+        + '<td class="small">' + escapeHtml((g.playerXName || '—') + ' против ' + (g.playerOName || '—')) + '</td>'
+        + '<td class="small">' + escapeHtml(g.createdByName || '—') + '</td>'
+        + '<td class="nw small">' + escapeHtml(fmtTs(g.createdAt)) + '</td>'
+        + '</tr>';
+    });
+    html += '</tbody></table>';
+    c.innerHTML = html;
+    Array.prototype.forEach.call(c.querySelectorAll('tr[data-gid]'), function(tr){
+      tr.addEventListener('click', function(){
+        var id = tr.getAttribute('data-gid');
+        var g = null;
+        for (var i = 0; i < state.allGames.length; i++) {
+          if (state.allGames[i]._id === id) { g = state.allGames[i]; break; }
+        }
+        if (g) openGameCard(g);
+      });
+    });
+  }
+
+  function openGameCard(g){
+    state.currentGameCard = g;
+    var c = $('gameCardContainer');
+    c.classList.remove('hidden');
+    var movesCount = g.moves ? Object.keys(g.moves).length : 0;
+    var html = '';
+    html += '<h2 style="margin-top:8px">' + escapeHtml(g.roomName || g._id)
+      + ' <span class="dim small">(' + escapeHtml(g.status || '—') + ')</span></h2>';
+    html += '<p class="small mono dim">id: ' + escapeHtml(g._id) + ' | ключ: ' + escapeHtml(g.roomKey || '—') + '</p>';
+    html += '<p class="small">Игроки: <b>' + escapeHtml(g.playerXName || '—') + '</b> (X) против <b>'
+      + escapeHtml(g.playerOName || '—') + '</b> (O)</p>';
+    html += '<p class="small">Создатель: ' + escapeHtml(g.createdByName || '—') + '</p>';
+    html += '<p class="small">Создана: ' + escapeHtml(fmtTs(g.createdAt))
+      + ' | старт: ' + escapeHtml(fmtTs(g.gameStartTime))
+      + ' | конец: ' + escapeHtml(fmtTs(g.endedAt)) + '</p>';
+    html += '<p class="small">Победитель: ' + escapeHtml(g.winner || '—')
+      + ' | причина: ' + escapeHtml(g.endReason || '—') + '</p>';
+    html += '<p class="small">Ходов: ' + movesCount
+      + ' | сейчас ходит: ' + escapeHtml(g.currentTurn || '—')
+      + ' | пауз: ' + (g.pauseCount || 0)
+      + ' | пинков: ' + (g.nudgeCount || 0) + '</p>';
+    html += '<p class="small">Статистика начислена: X — ' + (g.statsAppliedX ? 'да' : 'нет')
+      + ', O — ' + (g.statsAppliedO ? 'да' : 'нет') + '</p>';
+    $('gameCardBody').innerHTML = html;
+
+    $('gameCardActivity').textContent = 'Загрузка активности...';
+    db.collection('activity').doc(g._id).get().then(function(a){
+      if (!a.exists) { $('gameCardActivity').textContent = 'Документ activity отсутствует.'; return; }
+      var d = a.data();
+      $('gameCardActivity').textContent = 'Пульс X: ' + fmtTs(d.playerXLastActivity)
+        + ' | пульс O: ' + fmtTs(d.playerOLastActivity);
+    }).catch(function(e){
+      $('gameCardActivity').textContent = 'Ошибка активности: ' + e.message;
+    });
+
+    var isActive = (g.status === 'playing' || g.status === 'paused' || g.status === 'waiting');
+    var isPlaying = (g.status === 'playing' || g.status === 'paused');
+    $('btnGameCancel').disabled = !isActive;
+    $('btnGameWinX').disabled = !isPlaying;
+    $('btnGameWinO').disabled = !isPlaying;
+
+    c.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  function catalogCardFrom(g, now){
+    return {
+      id: g._id,
+      roomName: g.roomName || '???',
+      status: g.status,
+      playerX: g.playerX || null,
+      playerO: g.playerO || null,
+      playerXName: g.playerXName || null,
+      playerOName: g.playerOName || null,
+      createdBy: g.createdBy || null,
+      createdByName: g.createdByName || null,
+      createdAt: g.createdAt || null,
+      endedAt: g.endedAt || null,
+      endReason: g.endReason || null,
+      winner: g.winner || null,
+      pausedAt: g.pausedAt || null,
+      statsAppliedX: !!g.statsAppliedX,
+      statsAppliedO: !!g.statsAppliedO,
+      changedAt: now
+    };
+  }
+  function upsertCatalogCard(g){
+    var now = Date.now();
+    var card = catalogCardFrom(g, now);
+    return db.collection('meta').doc('lobby').get().then(function(s){
+      var rooms = (s.exists && Array.isArray(s.data().rooms)) ? s.data().rooms.slice() : [];
+      var i = -1;
+      for (var k = 0; k < rooms.length; k++) {
+        if (rooms[k].id === g._id) { i = k; break; }
+      }
+      if (i >= 0) rooms[i] = Object.assign({}, rooms[i], card);
+      else rooms.push(card);
+      trimRoomsAdmin(rooms);
+      return db.collection('meta').doc('lobby').set({ rooms: rooms, updatedAt: now });
+    }).catch(function(e){
+      console.warn('Каталог не обновлён после действия админа:', e);
+    });
+  }
+  function removeCatalogCard(id){
+    var now = Date.now();
+    return db.collection('meta').doc('lobby').get().then(function(s){
+      if (!s.exists) return;
+      var rooms = (Array.isArray(s.data().rooms) ? s.data().rooms : []).filter(function(r){
+        return r.id !== id;
+      });
+      return db.collection('meta').doc('lobby').set({ rooms: rooms, updatedAt: now });
+    }).catch(function(e){
+      console.warn('Каталог не очищен после удаления:', e);
+    });
+  }
+
+  function refreshAfterGameAction(g){
+    renderGamesList();
+    openGameCard(g);
+    refreshMonitoring(true);
+  }
+
+  $('btnGamesLoad').addEventListener('click', loadGames);
+  $('gamesFilter').addEventListener('change', function(){
+    if (state.allGames.length) renderGamesList();
+  });
+  $('gamesSearch').addEventListener('input', function(){
+    if (state.allGames.length) renderGamesList();
+  });
+  $('btnCloseGameCard').addEventListener('click', function(){
+    $('gameCardContainer').classList.add('hidden');
+    state.currentGameCard = null;
+  });
+
+  $('btnGameCancel').addEventListener('click', function(){
+    var g = state.currentGameCard;
+    if (!g) return;
+    if (!window.confirm('Отменить игру ' + (g.roomName || g._id) + ' без результата?')) return;
+    var prevStatus = g.status;
+    var now = Date.now();
+    var updates = { status: 'cancelled', endReason: 'admin_cancelled', endedAt: now };
+    var btn = $('btnGameCancel');
+    btn.disabled = true;
+    db.collection('games').doc(g._id).update(updates).then(function(){
+      Object.assign(g, updates);
+      return upsertCatalogCard(g).then(function(){
+        return logAction('game_cancel', { gameId: g._id, roomName: g.roomName || '', prevStatus: prevStatus });
+      });
+    }).then(function(){
+      refreshAfterGameAction(g);
+      showToast('Игра отменена без результата');
+    }).catch(function(e){
+      showToast('Ошибка отмены: ' + e.message);
+    }).then(function(){
+      btn.disabled = false;
+      openGameCard(g);
+    });
+  });
+
+  function forceWin(sym){
+    var g = state.currentGameCard;
+    if (!g) return;
+    if (!window.confirm('Назначить победу ' + sym + ' в игре ' + (g.roomName || g._id)
+        + '? Статистика начислится клиентами игроков автоматически.')) return;
+    var prevStatus = g.status;
+    var now = Date.now();
+    var updates = { status: 'completed', winner: sym, endReason: 'admin_decision', endedAt: now };
+    var btn = (sym === 'X') ? $('btnGameWinX') : $('btnGameWinO');
+    btn.disabled = true;
+    db.collection('games').doc(g._id).update(updates).then(function(){
+      Object.assign(g, updates);
+      return upsertCatalogCard(g).then(function(){
+        return logAction('game_force_win', { gameId: g._id, roomName: g.roomName || '', winner: sym, prevStatus: prevStatus });
+      });
+    }).then(function(){
+      refreshAfterGameAction(g);
+      showToast('Победа назначена: ' + sym);
+    }).catch(function(e){
+      showToast('Ошибка назначения: ' + e.message);
+    }).then(function(){
+      btn.disabled = false;
+      openGameCard(g);
+    });
+  }
+  $('btnGameWinX').addEventListener('click', function(){ forceWin('X'); });
+  $('btnGameWinO').addEventListener('click', function(){ forceWin('O'); });
+
+  $('btnGameDelete').addEventListener('click', function(){
+    var g = state.currentGameCard;
+    if (!g) return;
+    if (!window.confirm('УДАЛИТЬ игру ' + (g.roomName || g._id)
+        + ' полностью (документ игры, activity и карточку каталога)? Действие необратимо.')) return;
+    var id = g._id;
+    var roomName = g.roomName || '';
+    var btn = $('btnGameDelete');
+    btn.disabled = true;
+    db.collection('games').doc(id).delete().then(function(){
+      return db.collection('activity').doc(id).delete().catch(function(){});
+    }).then(function(){
+      return removeCatalogCard(id);
+    }).then(function(){
+      state.allGames = state.allGames.filter(function(x){ return x._id !== id; });
+      state.currentGameCard = null;
+      $('gameCardContainer').classList.add('hidden');
+      renderGamesList();
+      refreshMonitoring(true);
+      return logAction('game_delete', { gameId: id, roomName: roomName });
+    }).then(function(){
+      showToast('Игра удалена');
+    }).catch(function(e){
+      showToast('Ошибка удаления: ' + e.message);
+    }).then(function(){
+      btn.disabled = false;
+    });
+  });
+
+  /* ---------- ОТЛАДКА ---------- */
+  window.adm = {
+    version: ADMIN_VERSION,
+    refresh: refreshMonitoring,
+    rebuild: rebuildCatalog,
+    janGames: { dry: janGamesDryRun, run: janGamesRun },
+    janAcc: { dry: janAccDryRun, run: janAccRun },
+    trash: { load: loadTrash },
+    orphans: { purge: purgeOrphanActivity },
+    log: loadLog,
+    games: loadGames,
+    config: loadSettings,
+    top: loadTop,
+    state: state
+  };
+})();
+</script>
+</body>
+</html>

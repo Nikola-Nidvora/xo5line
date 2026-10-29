@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XO5 PING TEST — t1.2</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#17202b; --panel2:#1d2836; --line:#2b3a4d;
+    --text:#dbe6f2; --dim:#8fa3b8; --accent:#4da3ff; --bad:#ff6b6b; --ok:#57d38c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:15px/1.5 "Segoe UI",Tahoma,sans-serif}
+  code,pre,.mono{font-family:Consolas,"Courier New",monospace}
+  .wrap{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+  h1{font-size:22px;margin:0 0 4px}
+  h2{font-size:16px;margin:16px 0 8px;color:var(--accent)}
+  p{margin:6px 0}
+  .dim{opacity:.65}
+  .small{font-size:12px}
+  .bad{color:var(--bad)}
+  .ok{color:var(--ok)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:16px;margin:12px 0}
+  input{background:var(--panel2);color:var(--text);border:1px solid var(--line);
+    border-radius:8px;padding:9px 10px;font-size:15px;width:100%;margin:4px 0}
+  button{background:var(--accent);color:#06111c;border:0;border-radius:8px;
+    padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;margin:4px 6px 4px 0}
+  button:hover{filter:brightness(1.1)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  pre,textarea{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    padding:10px;overflow:auto;font-size:12px;color:var(--text);width:100%}
+  textarea{min-height:180px;font-family:Consolas,monospace}
+  #log{min-height:120px;max-height:260px}
+  .statusline{margin:8px 0;color:var(--dim);font-size:13px}
+  footer{margin-top:22px;color:var(--dim);font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>XO5 PING TEST <span class="mono small">t1.2 (2026-10-29)</span></h1>
+  <p class="dim small">Инструмент замера задержек Firebase проекта xo5line: чтение, запись,
+    транзакция, видимость записи. Пишет только в служебный документ meta/pingtest —
+    игра и игроки не затрагиваются.</p>
+
+  <div class="card">
+    <h2 style="margin-top:0">Вход (нужен для правил Firestore)</h2>
+    <input id="loginName" type="text" placeholder="Имя (как в игре)">
+    <input id="loginPass" type="password" placeholder="Пароль">
+    <button id="btnLogin" type="button">Войти и подготовить тесты</button>
+    <p class="statusline" id="loginStatus">Не выполнен вход. Адрес собирается как имя@xo5line.local.</p>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Сведения о среде</h2>
+    <p class="small mono" id="envInfo">—</p>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Замеры</h2>
+    <button id="btnAll" type="button" disabled>Выполнить всё</button>
+    <button id="btnRead" type="button" disabled>1. Чтение ×10</button>
+    <button id="btnWrite" type="button" disabled>2. Запись ×10</button>
+    <button id="btnTx" type="button" disabled>3. Транзакция ×10</button>
+    <button id="btnDeliv" type="button" disabled>4. Видимость ×5</button>
+    <p class="statusline" id="testStatus">Ожидание входа...</p>
+    <table>
+      <thead><tr><th>Тест</th><th>n</th><th>мин, мс</th><th>среднее, мс</th><th>макс, мс</th><th>ошибок</th></tr></thead>
+      <tbody id="resBody">
+        <tr><td>Чтение (getDoc)</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Запись (setDoc)</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Транзакция (runTransaction)</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Видимость записи (чтение с сервера)</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Журнал прогонов</h2>
+    <pre id="log"></pre>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Отчёт для отправки</h2>
+    <button id="btnReport" type="button" disabled>Сформировать отчёт</button>
+    <p class="dim small">После формирования выдели текст в поле ниже, скопируй (Ctrl+C)
+      и пришли в чат.</p>
+    <textarea id="report" readonly placeholder="Здесь появится отчёт..."></textarea>
+  </div>
+
+  <footer>xo5_ping_t1.2.html &middot; t1.2 &middot; проект xo5line &middot; &copy; Ni.Coder &amp; Qwen</footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+(function(){
+  'use strict';
+  var TESTER_VERSION = 't1.2';
+  var BUILD_DATE = '2026-10-29';
+  // НОВОЕ В t1.2: домен синтетического входа совпадает с именем проекта
+  var EMAIL_DOMAIN = '@xo5line.local';
+
+  var firebaseConfig = {
+    apiKey: "AIzaSyBErGlVe3j1IIPYiBGz2TAJxr96uV1Nff0",
+    authDomain: "xo5line.firebaseapp.com",
+    projectId: "xo5line",
+    storageBucket: "xo5line.firebasestorage.app",
+    messagingSenderId: "465510523600",
+    appId: "1:465510523600:web:ad8c4b628d32ea3dc2f4d5"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  var auth = firebase.auth();
+  var db = firebase.firestore();
+  var ref = db.doc('meta/pingtest');
+
+  var results = { read: null, write: null, tx: null, deliv: null };
+  var loginMs = null;
+
+  function $(id){ return document.getElementById(id); }
+  function log(line){
+    var el = $('log');
+    var t = new Date().toLocaleTimeString('ru-RU');
+    el.textContent += '[' + t + '] ' + line + '\n';
+    el.scrollTop = el.scrollHeight;
+  }
+  function round1(v){ return Math.round(v * 10) / 10; }
+  function statsOf(arr){
+    if (!arr.length) return { min: null, avg: null, max: null };
+    var min = arr[0], max = arr[0], sum = 0;
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i] < min) min = arr[i];
+      if (arr[i] > max) max = arr[i];
+      sum += arr[i];
+    }
+    return { min: round1(min), avg: round1(sum / arr.length), max: round1(max) };
+  }
+  function fmt(arr){
+    var s = statsOf(arr);
+    if (s.avg === null) return 'нет данных';
+    return s.min + ' / ' + s.avg + ' / ' + s.max;
+  }
+  function paintRow(idx, name, arr, errs){
+    var s = statsOf(arr);
+    var tr = $('resBody').rows[idx];
+    tr.cells[0].textContent = name;
+    tr.cells[1].textContent = arr.length;
+    tr.cells[2].textContent = s.min === null ? '—' : s.min;
+    tr.cells[3].textContent = s.avg === null ? '—' : s.avg;
+    tr.cells[4].textContent = s.max === null ? '—' : s.max;
+    tr.cells[5].textContent = errs;
+  }
+  function envLine(){
+    var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    var parts = [];
+    parts.push('browser: ' + navigator.userAgent);
+    parts.push('onLine: ' + navigator.onLine);
+    if (c) {
+      parts.push('effectiveType: ' + (c.effectiveType || '?'));
+      parts.push('rtt: ' + (c.rtt != null ? c.rtt + ' ms' : '?'));
+      parts.push('downlink: ' + (c.downlink != null ? c.downlink + ' Mbps' : '?'));
+      parts.push('saveData: ' + c.saveData);
+    } else {
+      parts.push('connection API: недоступно');
+    }
+    return parts.join(' | ');
+  }
+  function payload(i, tag){
+    return { rooms: [], updatedAt: Date.now(), seq: i, tag: tag };
+  }
+
+  $('envInfo').textContent = envLine();
+  log('Тестировщик ' + TESTER_VERSION + ' загружен. Ожидание входа.');
+
+  $('btnLogin').addEventListener('click', function(){
+    var name = ($('loginName').value || '').trim();
+    var pass = $('loginPass').value || '';
+    if (!name || !pass) { $('loginStatus').textContent = 'Введи имя и пароль.'; return; }
+    $('btnLogin').disabled = true;
+    var t0 = performance.now();
+    auth.signInWithEmailAndPassword(name.toLowerCase() + EMAIL_DOMAIN, pass)
+      .then(function(){
+        loginMs = round1(performance.now() - t0);
+        $('loginStatus').innerHTML = '<span class="ok">Вход выполнен за ' + loginMs +
+          ' мс.</span> Документ-мишень: meta/pingtest.';
+        log('Вход выполнен за ' + loginMs + ' мс.');
+        ['btnAll','btnRead','btnWrite','btnTx','btnDeliv','btnReport'].forEach(function(id){
+          $(id).disabled = false;
+        });
+        $('testStatus').textContent = 'Готов к замерам.';
+      })
+      .catch(function(e){
+        $('btnLogin').disabled = false;
+        $('loginStatus').innerHTML = '<span class="bad">Ошибка входа: ' +
+          (e && e.code ? e.code : e.message) + '</span>';
+      });
+  });
+
+  function testRead(){
+    var ms = [], errs = 0, i = 0;
+    function step(){
+      if (i >= 10) {
+        results.read = { arr: ms, errs: errs };
+        paintRow(0, 'Чтение (getDoc)', ms, errs);
+        log('Чтение ×10: мин/сред/макс = ' + fmt(ms) + ', ошибок ' + errs);
+        return Promise.resolve();
+      }
+      var t0 = performance.now();
+      return ref.get().then(function(){
+        ms.push(performance.now() - t0);
+      }).catch(function(e){
+        errs++; log('Чтение #' + i + ' ошибка: ' + (e && e.code ? e.code : e.message));
+      }).then(function(){ i++; return step(); });
+    }
+    return step();
+  }
+
+  function testWrite(){
+    var ms = [], errs = 0, i = 0;
+    function step(){
+      if (i >= 10) {
+        results.write = { arr: ms, errs: errs };
+        paintRow(1, 'Запись (setDoc)', ms, errs);
+        log('Запись ×10: мин/сред/макс = ' + fmt(ms) + ', ошибок ' + errs);
+        return Promise.resolve();
+      }
+      var n = i;
+      var t0 = performance.now();
+      return ref.set(payload(n, 'write')).then(function(){
+        ms.push(performance.now() - t0);
+      }).catch(function(e){
+        errs++; log('Запись #' + n + ' ошибка: ' + (e && e.code ? e.code : e.message));
+      }).then(function(){ i++; return step(); });
+    }
+    return step();
+  }
+
+  function testTx(){
+    var ms = [], errs = 0, i = 0;
+    function step(){
+      if (i >= 10) {
+        results.tx = { arr: ms, errs: errs };
+        paintRow(2, 'Транзакция (runTransaction)', ms, errs);
+        log('Транзакция ×10: мин/сред/макс = ' + fmt(ms) + ', ошибок ' + errs);
+        return Promise.resolve();
+      }
+      var n = i;
+      var t0 = performance.now();
+      return db.runTransaction(function(tx){
+        return tx.get(ref).then(function(){
+          tx.set(ref, payload(n, 'tx'));
+        });
+      }).then(function(){
+        ms.push(performance.now() - t0);
+      }).catch(function(e){
+        errs++; log('Транзакция #' + n + ' ошибка: ' + (e && e.code ? e.code : e.message));
+      }).then(function(){ i++; return step(); });
+    }
+    return step();
+  }
+
+  function testDelivery(){
+    var ms = [], errs = 0;
+    var chain = Promise.resolve();
+    for (var n = 0; n < 5; n++) {
+      chain = (function(idx){
+        return chain.then(function(){
+          var seq = 'v' + Date.now() + '-' + idx;
+          var t0 = performance.now();
+          function poll(){
+            return ref.get({ source: 'server' }).then(function(snap){
+              var d = snap.exists ? snap.data() : null;
+              if (d && d.seq === seq) {
+                ms.push(performance.now() - t0);
+                return;
+              }
+              if (performance.now() - t0 > 15000) {
+                throw new Error('TIMEOUT');
+              }
+              return new Promise(function(r){ setTimeout(r, 150); }).then(poll);
+            });
+          }
+          return ref.set({ rooms: [], updatedAt: Date.now(), seq: seq, tag: 'visibility' })
+            .then(poll)
+            .catch(function(e){
+              errs++; log('Видимость #' + idx + ' ошибка: ' + (e && e.message ? e.message : e));
+            });
+        });
+      })(n);
+    }
+    return chain.then(function(){
+      results.deliv = { arr: ms, errs: errs };
+      paintRow(3, 'Видимость записи (чтение с сервера)', ms, errs);
+      log('Видимость ×5: мин/сред/макс = ' + fmt(ms) + ', ошибок ' + errs);
+    });
+  }
+
+  function setBusy(v){
+    ['btnAll','btnRead','btnWrite','btnTx','btnDeliv'].forEach(function(id){
+      $(id).disabled = v;
+    });
+  }
+
+  $('btnRead').addEventListener('click', function(){
+    setBusy(true); $('testStatus').textContent = 'Идёт замер чтения...';
+    testRead().then(function(){ setBusy(false); $('testStatus').textContent = 'Готов.'; });
+  });
+  $('btnWrite').addEventListener('click', function(){
+    setBusy(true); $('testStatus').textContent = 'Идёт замер записи...';
+    testWrite().then(function(){ setBusy(false); $('testStatus').textContent = 'Готов.'; });
+  });
+  $('btnTx').addEventListener('click', function(){
+    setBusy(true); $('testStatus').textContent = 'Идёт замер транзакций...';
+    testTx().then(function(){ setBusy(false); $('testStatus').textContent = 'Готов.'; });
+  });
+  $('btnDeliv').addEventListener('click', function(){
+    setBusy(true); $('testStatus').textContent = 'Идёт замер видимости...';
+    testDelivery().then(function(){ setBusy(false); $('testStatus').textContent = 'Готов.'; });
+  });
+  $('btnAll').addEventListener('click', function(){
+    setBusy(true);
+    $('testStatus').textContent = 'Полный прогон: чтение → запись → транзакция → видимость...';
+    log('=== Полный прогон начат ===');
+    testRead()
+      .then(function(){ $('testStatus').textContent = 'Прогон: запись...'; return testWrite(); })
+      .then(function(){ $('testStatus').textContent = 'Прогон: транзакция...'; return testTx(); })
+      .then(function(){ $('testStatus').textContent = 'Прогон: видимость...'; return testDelivery(); })
+      .then(function(){
+        log('=== Полный прогон завершён ===');
+        $('testStatus').textContent = 'Прогон завершён. Сформируй отчёт.';
+        setBusy(false);
+        buildReport();
+      });
+  });
+
+  function arrLine(arr){
+    return arr.map(function(v){ return round1(v); }).join(', ');
+  }
+  function buildReport(){
+    var L = [];
+    L.push('XO5 PING TEST ' + TESTER_VERSION + ' (' + BUILD_DATE + ')');
+    L.push('Дата снятия: ' + new Date().toLocaleString('ru-RU'));
+    L.push('Среда: ' + envLine());
+    L.push('Вход: ' + (loginMs === null ? '—' : loginMs + ' мс'));
+    L.push('');
+    function block(title, r){
+      if (!r) { L.push(title + ': не выполнен'); return; }
+      var s = statsOf(r.arr);
+      L.push(title + ': n=' + r.arr.length +
+        ', мин=' + s.min + ', сред=' + s.avg + ', макс=' + s.max +
+        ', ошибок=' + r.errs);
+      L.push('  значения: ' + arrLine(r.arr));
+    }
+    block('Чтение (getDoc)', results.read);
+    block('Запись (setDoc)', results.write);
+    block('Транзакция (runTransaction)', results.tx);
+    block('Видимость записи (чтение с сервера)', results.deliv);
+    L.push('');
+    L.push('Журнал:');
+    L.push($('log').textContent);
+    $('report').value = L.join('\n');
+    log('Отчёт сформирован.');
+  }
+  $('btnReport').addEventListener('click', buildReport);
+})();
+</script>
+</body>
+</html>
