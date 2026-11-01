@@ -34,14 +34,16 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <header>
 <h1>5 в ряд — Бесконечное поле</h1>
 <p class="authors">Ni.Coder &amp; Qwen</p>
-<p class="gamever">v1.31.3</p>
+<p class="gamever">v1.31.5</p>
 </header>
 
 <section class="card">
 <h2>Играть</h2>
 <p>Онлайн-партия для двоих на бесконечном поле: соберите линию
 из пяти своих символов по горизонтали, вертикали или диагонали.</p>
-<p><a class="btn" href="xo5_v1.31.3.html">Открыть игру</a></p>
+<p><a class="btn" href="xo5_v1.31.5.html">Открыть игру</a></p>
+<p class="dim small">🔥 <strong>Антибосс (Esc):</strong> мгновенно маскирует игру — страница перейдёт на google.com.
+Возврат на визитку — через пункт «К визитке» в меню шестерёнки игры.</p>
 <p class="dim small">Работает в браузере на компьютере и телефоне.
 Для игры нужна регистрация: ник 3–8 символов и пароль.
 Игра сама подскажет, когда на сайте появится новая версия.</p>
@@ -60,5 +62,14 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <p>© Ni.Coder &amp; Qwen, 2026. Бесплатный некоммерческий проект.</p>
 </footer>
 </main>
+<script>
+// НОВОЕ В 1.12: глобальный Esc-антибосс на визитке
+document.addEventListener('keydown', (e) => {
+if (e.key === 'Escape') {
+if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+location.replace('https://www.google.com/');
+}
+});
+</script>
 </body>
 </html>
