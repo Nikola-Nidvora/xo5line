@@ -27,6 +27,7 @@ a{color:#667eea}
 .dim{opacity:.7}
 .small{font-size:13px}
 footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px}
+#boss-overlay{display:none;position:fixed;inset:0;background:#ffffff;z-index:2147483647;cursor:default}
 </style>
 </head>
 <body>
@@ -34,15 +35,17 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <header>
 <h1>5 в ряд — Бесконечное поле</h1>
 <p class="authors">Ni.Coder &amp; Qwen</p>
-<p class="gamever">v1.31.6</p>
+<p class="gamever">v1.31.7</p>
 </header>
 
 <section class="card">
 <h2>Играть</h2>
 <p>Онлайн-партия для двоих на бесконечном поле: соберите линию
 из пяти своих символов по горизонтали, вертикали или диагонали.</p>
-<p><a class="btn" href="xo5_v1.31.6.html">Открыть игру</a></p>
-<p class="dim small">🔥 <strong>Антибосс (Esc):</strong> мгновенно делает экран белым (маскировка). Повторное нажатие Esc вернёт игру.</p>
+<p><a class="btn" href="xo5_v1.31.7.html">Открыть игру</a></p>
+<p class="dim small">🔒 <strong>Антибосс (Esc):</strong> экран мгновенно становится
+полностью белым — игра скрыта. Повторное нажатие Esc возвращает страницу.
+Работает во всех браузерах (Chrome, Edge, Firefox, Yandex) и на телефоне.</p>
 <p class="dim small">Работает в браузере на компьютере и телефоне.
 Для игры нужна регистрация: ник 3–8 символов и пароль.
 Игра сама подскажет, когда на сайте появится новая версия.</p>
@@ -61,5 +64,22 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <p>© Ni.Coder &amp; Qwen, 2026. Бесплатный некоммерческий проект.</p>
 </footer>
 </main>
+<div id="boss-overlay"></div>
+<script>
+// Антибосс на визитке: белый оверлей с тумблером Esc (без навигации,
+// поэтому работает во всех браузерах, включая Firefox и Yandex)
+(function(){
+  var boss = false;
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      e.preventDefault();
+      boss = !boss;
+      var o = document.getElementById('boss-overlay');
+      if (o) o.style.display = boss ? 'block' : 'none';
+    }
+  });
+})();
+</script>
 </body>
 </html>
