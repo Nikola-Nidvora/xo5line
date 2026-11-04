@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5 в ряд - Бесконечное поле</title>
+<!-- v1.33.0: стили вынесены в xo5-styles.css, логика — в модули. -->
+<link rel="stylesheet" href="xo5-styles.css">
+</head>
+<body>
+<div class="join-notification" id="join-notification"></div>
+<div class="debug-indicator" id="debug-indicator">&#128295; Отладка</div>
+<div class="debug-overlay" id="debug-overlay">
+<div class="debug-panel">
+<h2>&#128295; Режим отладки</h2>
+<div class="debug-option" data-checkbox="dbg-timer">
+<label>&#9201;&#65039; Таймер хода выключен</label>
+<div class="debug-switch">
+<input type="checkbox" id="dbg-timer" onchange="applyDebugSettings()">
+<span class="debug-slider"></span>
+</div>
+</div>
+<div class="debug-option" data-checkbox="dbg-reveal">
+<label>&#128065;&#65039; Показать всё поле</label>
+<div class="debug-switch">
+<input type="checkbox" id="dbg-reveal" onchange="applyDebugSettings()">
+<span class="debug-slider"></span>
+</div>
+</div>
+<button class="debug-reset-btn" onclick="resetDebugSettings()">&#128260; Сброс всех режимов</button>
+<button class="debug-close-btn" onclick="closeDebugPanel()">Закрыть окно (режимы сохранятся)</button>
+<div class="debug-hint">Ctrl+Alt+D — показать/скрыть окно • «Сброс» — выключить все режимы</div>
+</div>
+</div>
+<div class="result-overlay" id="result-overlay">
+<div class="result-modal">
+<div class="result-message" id="result-message"></div>
+<button class="result-btn" onclick="closeResultModal()">ОК</button>
+</div>
+</div>
+<div class="confirm-overlay" id="confirm-overlay">
+<div class="confirm-modal">
+<div class="confirm-message">Вы уверены, что хотите сдаться? Это засчитает поражение.</div>
+<div class="confirm-buttons">
+<button class="danger" onclick="confirmSurrender(this)">Да, сдаться</button>
+<button class="secondary" onclick="closeConfirmModal()">Отмена</button>
+</div>
+</div>
+</div>
+<div class="delete-account-overlay" id="delete-account-overlay">
+<div class="delete-account-modal">
+<h3>&#9888;&#65039; Удаление аккаунта</h3>
+<div class="warning-text">
+Это действие <strong>необратимо</strong>. Будут удалены:
+</div>
+<ul class="warning-list">
+<li>Ваш профиль и статистика</li>
+<li>Все ваши активные игры (будут отменены)</li>
+<li>Запись в системе входа (вход станет невозможен)</li>
+</ul>
+<div class="warning-text">
+Аккаунт <strong id="delete-account-username"></strong> будет удалён навсегда.
+</div>
+<form id="delete-account-form" novalidate autocomplete="off" data-form-type="other">
+<div class="modal-hint">&#128274; Введите пароль для подтверждения:</div>
+<input type="password" id="delete-account-password" placeholder="Пароль аккаунта" autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="none" data-lpignore="true" data-1p-ignore="true">
+<div class="modal-error" id="delete-account-error"></div>
+<div class="delete-account-buttons">
+<button type="button" class="danger" id="delete-account-confirm-btn" onclick="confirmDeleteAccount()">Да, удалить навсегда</button>
+<button type="button" class="secondary" onclick="closeDeleteAccountModal()">Отмена</button>
+</div>
+</form>
+</div>
+</div>
+<div class="ban-overlay" id="ban-overlay">
+<div class="ban-modal">
+<h3>&#9888;&#65039; Аккаунт заблокирован</h3>
+<div class="ban-text">
+Ваш аккаунт заблокирован администратором.<br>
+Если вы считаете, что это ошибка, свяжитесь с администратором.
+</div>
+<button class="danger" id="ban-logout-btn" type="button">Выйти</button>
+</div>
+</div>
+<div class="help-overlay" id="help-overlay">
+<div class="help-modal">
+<h3>&#10068; Справка</h3>
+<div class="help-text">
+<p><b>Антибосс</b></p>
+<p>• Нажмите <b>Esc</b> в любом месте игры — экран мгновенно станет полностью белым (маскировка). Повторное нажатие Esc вернёт игру. Работает во всех браузерах.</p>
+<p>• Возврат на главную страницу сайта — меню шестерёнки, пункт «К визитке».</p>
+<p><b>Как играть</b></p>
+<p>• Создайте свою комнату или войдите в чужую в списке ниже.</p>
+<p>• Отмена своего хода доступна 3 секунды после хода.</p>
+<p><b>ПК:</b> прицел следует за мышью один в один; свободная клетка под прицелом подсвечивается бледно-зелёным; ход — клик или Enter; WASD/стрелки, «+»/«−», Пробел и кнопки под полем переводят прицел в режим клетки-цели (центр экрана); ПКМ/СКМ/удержание — перемещение поля; Backspace — отмена хода.</p>
+<p><b>Телефон:</b> тап по прицелу (центр экрана) — ход в его клетку; тап по остальному полю хода не делает; перетаскивание одним пальцем — перемещение поля; щипок двумя пальцами — масштаб; кнопки под полем — масштаб и центр.</p>
+<p>• <a href="rules.html" target="_blank" rel="noopener">Полные правила игры</a></p>
+</div>
+<button class="secondary" onclick="closeHelpModal()">Закрыть</button>
+</div>
+</div>
+<div class="sleep-saver" id="sleep-saver">
+<div class="sleep-coin" aria-hidden="true">
+<div class="sleep-rotor">
+<span class="sleep-face sleep-face-x">X</span>
+<span class="sleep-face sleep-face-o">O</span>
+</div>
+</div>
+</div>
+<div class="container compact-mode" id="main-container">
+<div class="connection-dot" id="connection-dot" title="Соединение: установка..."></div>
+<div class="top-coin" id="top-coin" aria-hidden="true">
+<div class="logo-anim">
+<div class="logo-rotor">
+<span class="logo-face logo-x">X</span>
+<span class="logo-face logo-o">O</span>
+</div>
+</div>
+</div>
+<div class="fs-symbol" id="fs-symbol"></div>
+<div class="top-tools">
+<button class="tool-btn" id="tt-help" onclick="openHelpModal()" title="Краткая справка">&#10068;</button>
+<div class="settings-wrapper">
+<button class="settings-btn" id="tt-gear" onclick="toggleTopSettings(event)" title="Настройки">&#9881;&#65039;</button>
+<div class="settings-menu" id="top-settings-menu" style="display: none;">
+<button class="settings-menu-item" id="mi-home" onclick="gotoHome()">&#127968; К визитке</button>
+<button class="settings-menu-item" id="mi-logout" onclick="logout(this); closeTopSettings();">&#128682; Выйти</button>
+<button class="settings-menu-item danger" id="mi-delete" onclick="showDeleteAccountModal(); closeTopSettings();">&#128465;&#65039; Удалить аккаунт</button>
+</div>
+</div>
+<button class="tool-btn" id="tt-fs" onclick="toggleFullscreenMode()" title="Поле на весь экран / выйти" style="display: none;">&#9974;</button>
+<button class="tool-btn" id="tt-sleep" onclick="enterSleepNow()" title="Режим сна" style="display: none;">&#128164;</button>
+</div>
+<div id="auth-screen" class="screen active">
+<div class="scrollable">
+<div class="auth-bar">
+<span class="auth-bar-title">Вход / Регистрация</span>
+</div>
+<div id="auth-error" class="error"></div>
+<div id="auth-success" class="success"></div>
+<!-- P4: readonly + onfocus для подавления менеджеров паролей -->
+<form id="auth-form" novalidate autocomplete="off" data-form-type="other" data-lpignore="true" data-1p-ignore="true">
+<input type="text" id="username" placeholder="Имя пользователя" autocomplete="off" maxlength="8" autofocus readonly onfocus="this.removeAttribute('readonly')" spellcheck="false" autocorrect="off" autocapitalize="none" data-lpignore="true" data-1p-ignore="true">
+<div class="password-wrapper">
+<input type="password" id="password" placeholder="Пароль" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" spellcheck="false" autocorrect="off" autocapitalize="none" data-lpignore="true" data-1p-ignore="true">
+<button type="button" class="eye-btn" id="eye-btn" tabindex="-1" onclick="togglePasswordVisibility()" title="Показать пароль">&#128065;&#65039;</button>
+</div>
+<label class="consent-wrap">
+<input type="checkbox" id="consent-check">
+<span class="consent-text">Я согласен с <a href="https://xo5line.web.app/privacy.html" target="_blank" rel="noopener">политикой конфиденциальности</a> и <a href="https://xo5line.web.app/terms.html" target="_blank" rel="noopener">пользовательским соглашением</a> (обязательно для регистрации)</span>
+</label>
+<button type="submit">Войти</button>
+<button type="button" onclick="register(this)" class="secondary">Зарегистрироваться</button>
+</form>
+</div>
+<div class="version" id="version-display"></div>
+</div>
+<div id="lobby-screen" class="screen">
+<div class="user-info">
+<span class="user-name">&#128100; <strong id="user-display"></strong></span>
+</div>
+<div class="user-stats" id="user-stats"></div>
+<div class="update-banner" id="update-banner">
+<span class="update-banner-text" id="update-banner-text"></span>
+<button class="update-banner-btn" onclick="gotoSite()">&#128260; К новой версии</button>
+<button class="update-banner-close" onclick="dismissUpdateBanner()" title="Скрыть до следующей загрузки">&#10005;</button>
+</div>
+<div id="lobby-error" class="error"></div>
+<div class="scrollable">
+<button id="create-game-btn" onclick="createGame()">&#10133; Создать игру</button>
+<div class="lobby-timer" id="lobby-timer" style="display: none;"></div>
+<div id="games-list" class="lobby-list">
+<div class="lobby-empty">Загрузка...</div>
+</div>
+</div>
+<div class="version" id="version-display-lobby"></div>
+</div>
+<div id="game-screen" class="screen">
+<div class="game-header">
+<div class="player-info">
+<div id="player-symbol" class="player-symbol">X</div>
+<div>
+<div class="player-line">
+<span class="player-name" id="player-name">Игрок</span>
+<span class="stats-inline" id="my-stats-inline"></span>
+</div>
+<div class="player-line opponent-line">
+<span class="opponent-status online" id="opponent-status-dot" title="Соперник в сети"></span>
+<span id="opponent-name" title="Ваш соперник">...</span>
+<span class="stats-inline" id="opponent-stats-inline"></span>
+</div>
+</div>
+</div>
+</div>
+<div class="room-header" id="room-header">
+<div class="room-name">
+<span>&#127968;&#65039;</span>
+<span id="room-name-text">...</span>
+</div>
+</div>
+<div class="timer-section">
+<div class="turn-strip">
+<span class="turn-strip-party" id="game-timer-fs">0:00</span>
+<div id="turn-indicator-fs" class="turn-indicator"></div>
+</div>
+<div class="timer-row">
+<span class="label">&#9201;&#65039; Партия:</span>
+<span class="value" id="game-timer">0:00</span>
+</div>
+<div class="timer-row turn-row">
+<span class="label">&#127919; Ход:</span>
+<div id="turn-indicator" class="turn-indicator"></div>
+<span class="value" id="turn-timer-text">20:00</span>
+</div>
+<div class="progress-container">
+<div id="turn-progress-bar" class="progress-bar state-normal" style="width: 100%;">
+<span class="progress-text" id="progress-text">20:00</span>
+</div>
+</div>
+</div>
+<div class="disconnect-banner" id="disconnect-banner">
+<div class="banner-text">&#9888;&#65039; Соперник переподключается...</div>
+<div class="banner-timer" id="disconnect-timer">20:00</div>
+<button onclick="endGameDueDisconnect(this)" class="danger">Завершить игру (без результата)</button>
+</div>
+<div class="pause-request-banner" id="pause-request-banner">
+<div class="banner-text" id="pause-request-text"></div>
+<div id="pause-request-buttons"></div>
+</div>
+<div class="resume-notice-banner" id="resume-notice-banner">
+<div class="banner-text" id="resume-notice-text"></div>
+</div>
+<div class="pause-banner" id="pause-banner">
+<div class="pause-title">&#9208;&#65039; Игра на паузе</div>
+<div class="pause-limit" id="pause-limit-text"></div>
+<div class="pause-state" id="pause-state-text"></div>
+<div id="pause-buttons"></div>
+</div>
+<div class="canvas-wrapper" id="canvas-wrapper">
+<canvas id="gameCanvas"></canvas>
+</div>
+<div class="controls-row dynamic" id="controls-dynamic" style="display: none;">
+<button id="undo-btn" onclick="undoMove(this)" style="display: none;">&#8617;&#65039; Отменить ход</button>
+<button id="nudge-btn" onclick="nudgeOpponent(this)" style="display: none;">&#129462; Пнуть</button>
+</div>
+<div class="controls-row static">
+<button id="surrender-btn" onclick="surrender()">&#127987;&#65039; Сдаться</button>
+<button id="pause-btn" onclick="requestPause(this)">&#9208;&#65039; Пауза</button>
+<button onclick="resetView()">&#127919; Центр</button>
+<button onclick="zoomIn()">&#128269;+</button>
+<button onclick="zoomOut()">&#128269;&#8722;</button>
+</div>
+<div class="version" id="version-display-game"></div>
+</div>
+</div>
+<div id="boss-overlay"></div>
+<script type="module">
+// Точка входа: ui-модуль тянет за собой online → core → constants.
+import { VERSION } from './xo5-constants.js';
+import './xo5-ui.js';
+console.log('%c[GAME] 5 в ряд v' + VERSION + ': введите debug.help() для отладки', 'color: #667eea; font-weight: bold;');
+</script>
+</body>
+</html>
