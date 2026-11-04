@@ -1,0 +1,28 @@
+# Windows
+Thumbs.db
+Desktop.ini
+*.lnk
+
+# macOS
+.DS_Store
+
+# Редакторы
+.vscode/
+.idea/
+*.swp
+
+# Node.js (понадобится для Cloud Functions)
+node_modules/
+npm-debug.log*
+
+# Firebase
+.firebase/
+firebase-debug.log
+
+# Секреты — никогда не коммитим
+*.env
+.env.local
+
+# Временные файлы
+*.log
+*.bak
