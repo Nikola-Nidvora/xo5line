@@ -1,6 +1,7 @@
 /* ============================================================
  * XO5 — 5 в ряд · Стили игры
- * v1.33.0-rc (рефакторинг-1/8: вынос из монолита v1.32.2)
+ * v2.0.6 (версионирование модулей)
+ * MODULE_VERSION = 1.0.2
  * ============================================================ */
 
 /* ---------- Reset & base ---------- */
@@ -318,6 +319,27 @@ animation: slideDown 0.5s ease, pulse-danger 2s infinite 0.5s;
 @keyframes slideDown {
 from { transform: translate(-50%, -100%); opacity: 0; }
 to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+/* ---------- Кнопка «Перейти» в плашке уведомления ---------- */
+.join-notification .notif-go-btn {
+display: inline-block;
+width: auto;
+padding: 6px 16px;
+margin: 0 0 0 12px;
+background: rgba(255, 255, 255, 0.95);
+color: #2e7d32;
+border: none;
+border-radius: 6px;
+font-size: 13px;
+font-weight: bold;
+cursor: pointer;
+vertical-align: middle;
+transition: background 0.15s;
+}
+.join-notification .notif-go-btn:hover {
+background: #ffffff;
+transform: none;
 }
 
 /* ---------- Confetti ---------- */
@@ -802,6 +824,20 @@ border: none; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 
 }
 .debug-close-btn:hover { background: #585b70; }
 
+/* ---------- Debug versions line ---------- */
+.debug-versions-line {
+margin-top: 12px;
+padding: 8px 12px;
+background: rgba(255, 255, 255, 0.05);
+border-radius: 6px;
+font-size: 11px;
+color: #a6adc8;
+font-family: 'Courier New', monospace;
+text-align: center;
+cursor: help;
+word-break: break-all;
+}
+
 /* ---------- Result / confirm / delete account ---------- */
 .result-overlay, .confirm-overlay, .delete-account-overlay {
 display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -867,3 +903,70 @@ box-shadow: 0 20px 60px rgba(0,0,0,0.3);
 }
 .ban-modal h3 { color: #ff5252; margin-bottom: 15px; font-size: 20px; }
 .ban-modal .ban-text { color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+
+/* ---------- Bot mode styles ---------- */
+.bot-persona-btn, .bot-side-btn {
+flex: 1;
+min-width: 100px;
+padding: 10px;
+border: 2px solid #e0e0e0;
+border-radius: 10px;
+background: #f5f5f5;
+cursor: pointer;
+font-size: 13px;
+font-weight: 600;
+transition: all 0.15s;
+}
+.bot-persona-btn:hover:not(:disabled), .bot-side-btn:hover {
+background: #e8f0fe;
+border-color: #667eea;
+}
+.bot-persona-btn.sel, .bot-side-btn.sel {
+border-color: #667eea;
+background: #e8f0fe;
+color: #667eea;
+}
+.bot-persona-btn.locked {
+opacity: 0.5;
+cursor: not-allowed;
+background: #f0f0f0;
+}
+.bot-persona-btn:disabled {
+cursor: not-allowed;
+}
+.bot-tag {
+display: block;
+font-size: 11px;
+color: #666;
+font-weight: normal;
+margin-top: 2px;
+}
+.bot-score {
+display: block;
+font-size: 11px;
+color: #4caf50;
+font-weight: 700;
+margin-top: 2px;
+}
+
+#bot-thinking-indicator {
+display: none;
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+background: rgba(255, 152, 0, 0.92);
+color: #fff;
+padding: 10px 20px;
+border-radius: 10px;
+font-size: 15px;
+font-weight: 700;
+z-index: 50;
+pointer-events: none;
+box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+animation: pulse-thinking 1.5s ease-in-out infinite;
+}
+@keyframes pulse-thinking {
+0%, 100% { opacity: 0.9; }
+50% { opacity: 1; }
+}

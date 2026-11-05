@@ -1,12 +1,19 @@
 // ============================================================
 // XO5 · 5 в ряд · Модуль 2/8: константы и конфигурация
-// v1.33.0-rc (рефакторинг: вынос из монолита v1.32.2)
+// v2.0.6 (глобальная версия игры — точка истины)
 // Чистый модуль: без DOM, без Firebase, без состояния партии.
 // ============================================================
 
 // ---------- Версия и авторство ----------
-export const VERSION = '1.33.0';
+export const VERSION = '2.0.6';
 export const AUTHORS = 'Ni.Coder & Qwen';
+
+// ---------- Версия модуля и регистрация в реестре ----------
+export const MODULE_VERSION = '1.0.1';
+if (typeof window !== 'undefined') {
+  window.XO5_VERSIONS = window.XO5_VERSIONS || {};
+  window.XO5_VERSIONS.constants = MODULE_VERSION;
+}
 
 // ---------- Таймауты партии и ходов (изменяются applyGameConfig) ----------
 export let TURN_WARNING_TIME = 15 * 60 * 1000;
@@ -105,51 +112,51 @@ export const STATUS_PLAYING = 'playing';
 export const STATUS_PAUSED = 'paused';
 export const STATUS_COMPLETED = 'completed';
 export const STATUS_CANCELLED = 'cancelled';
-
 export const LOOSER_PHRASES = [
-'Хорошая борьба! В следующий раз повезёт.',
-'Соперник сегодня чуть точнее. Ты всё равно молодец!',
-'Не сдавайся — твоя победа уже близко.',
-'Отличная партия! Реванш будет за тобой.',
-'Каждая партия делает тебя сильнее.'
+  'Хорошая борьба! В следующий раз повезёт.',
+  'Соперник сегодня чуть точнее. Ты всё равно молодец!',
+  'Не сдавайся — твоя победа уже близко.',
+  'Отличная партия! Реванш будет за тобой.',
+  'Каждая партия делает тебя сильнее.'
 ];
 export const CANCEL_PHRASES = [
-'Без результата — но всё впереди!',
-'Ничего страшного, начнём новую партию.',
-'Игра не засчитана. Следующая будет результативной!'
+  'Без результата — но всё впереди!',
+  'Ничего страшного, начнём новую партию.',
+  'Игра не засчитана. Следующая будет результативной!'
 ];
 
 // ---------- Удалённая конфигурация (config/app в Firestore) ----------
 export const GAME_CONFIG_DEFAULTS = {
-turnAutoEndMin: 20,
-turnWarningMin: 15,
-waitingTimeoutMin: 5,
-playingInactiveMin: 30,
-pauseMaxHours: 72,
-reconnectMin: 20,
-idleSleepMin: 5
+  turnAutoEndMin: 20,
+  turnWarningMin: 15,
+  waitingTimeoutMin: 5,
+  playingInactiveMin: 30,
+  pauseMaxHours: 72,
+  reconnectMin: 20,
+  idleSleepMin: 5
 };
+
 export let lobbyConfig = { staleGameDays: 5 };
 
 export function numMin(v, dflt, min, max) {
-const n = Number(v);
-if (!Number.isFinite(n)) return dflt;
-if (n < min) return min;
-if (n > max) return max;
-return Math.round(n);
+  const n = Number(v);
+  if (!Number.isFinite(n)) return dflt;
+  if (n < min) return min;
+  if (n > max) return max;
+  return Math.round(n);
 }
 
 // Применяет пороги из удалённого конфига; мутирует export let-значения,
 // импортёры видят обновления через живые связи ES-модулей.
 export function applyGameConfig(g) {
-const d = GAME_CONFIG_DEFAULTS;
-const autoEnd = numMin(g.turnAutoEndMin, d.turnAutoEndMin, 1, 240);
-const warn = numMin(g.turnWarningMin, d.turnWarningMin, 1, 240);
-TURN_AUTO_END_TIME = autoEnd * 60000;
-TURN_WARNING_TIME = Math.min(warn, Math.max(1, autoEnd - 1)) * 60000;
-WAITING_TIMEOUT = numMin(g.waitingTimeoutMin, d.waitingTimeoutMin, 1, 120) * 60000;
-PLAYING_INACTIVE_TIMEOUT = numMin(g.playingInactiveMin, d.playingInactiveMin, 5, 1440) * 60000;
-PAUSE_MAX_MS = numMin(g.pauseMaxHours, d.pauseMaxHours, 1, 720) * 3600000;
-RECONNECT_TIMEOUT = numMin(g.reconnectMin, d.reconnectMin, 1, 240) * 60000;
-IDLE_SLEEP_TIMEOUT = numMin(g.idleSleepMin, d.idleSleepMin, 1, 120) * 60000;
+  const d = GAME_CONFIG_DEFAULTS;
+  const autoEnd = numMin(g.turnAutoEndMin, d.turnAutoEndMin, 1, 240);
+  const warn = numMin(g.turnWarningMin, d.turnWarningMin, 1, 240);
+  TURN_AUTO_END_TIME = autoEnd * 60000;
+  TURN_WARNING_TIME = Math.min(warn, Math.max(1, autoEnd - 1)) * 60000;
+  WAITING_TIMEOUT = numMin(g.waitingTimeoutMin, d.waitingTimeoutMin, 1, 120) * 60000;
+  PLAYING_INACTIVE_TIMEOUT = numMin(g.playingInactiveMin, d.playingInactiveMin, 5, 1440) * 60000;
+  PAUSE_MAX_MS = numMin(g.pauseMaxHours, d.pauseMaxHours, 1, 720) * 3600000;
+  RECONNECT_TIMEOUT = numMin(g.reconnectMin, d.reconnectMin, 1, 240) * 60000;
+  IDLE_SLEEP_TIMEOUT = numMin(g.idleSleepMin, d.idleSleepMin, 1, 120) * 60000;
 }

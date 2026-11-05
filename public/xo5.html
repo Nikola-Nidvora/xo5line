@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>5 в ряд - Бесконечное поле</title>
-<!-- v1.33.0: стили вынесены в xo5-styles.css, логика — в модули. -->
+<!-- Favicon -->
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<!-- v2.0.6: версионирование модулей + бот-режим -->
 <link rel="stylesheet" href="xo5-styles.css">
 </head>
 <body>
@@ -30,6 +32,7 @@
 <button class="debug-reset-btn" onclick="resetDebugSettings()">&#128260; Сброс всех режимов</button>
 <button class="debug-close-btn" onclick="closeDebugPanel()">Закрыть окно (режимы сохранятся)</button>
 <div class="debug-hint">Ctrl+Alt+D — показать/скрыть окно • «Сброс» — выключить все режимы</div>
+<div class="debug-versions-line" id="debug-versions-line"></div>
 </div>
 </div>
 <div class="result-overlay" id="result-overlay">
@@ -63,7 +66,7 @@
 </div>
 <form id="delete-account-form" novalidate autocomplete="off" data-form-type="other">
 <div class="modal-hint">&#128274; Введите пароль для подтверждения:</div>
-<input type="password" id="delete-account-password" placeholder="Пароль аккаунта" autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="none" data-lpignore="true" data-1p-ignore="true">
+<input type="password" id="delete-account-password" placeholder="Пароль аккаунта" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" spellcheck="false" autocorrect="off" autocapitalize="none" data-lpignore="true" data-1p-ignore="true">
 <div class="modal-error" id="delete-account-error"></div>
 <div class="delete-account-buttons">
 <button type="button" class="danger" id="delete-account-confirm-btn" onclick="confirmDeleteAccount()">Да, удалить навсегда</button>
@@ -90,8 +93,8 @@
 <p>• Нажмите <b>Esc</b> в любом месте игры — экран мгновенно станет полностью белым (маскировка). Повторное нажатие Esc вернёт игру. Работает во всех браузерах.</p>
 <p>• Возврат на главную страницу сайта — меню шестерёнки, пункт «К визитке».</p>
 <p><b>Как играть</b></p>
-<p>• Создайте свою комнату или войдите в чужую в списке ниже.</p>
-<p>• Отмена своего хода доступна 3 секунды после хода.</p>
+<p>• Создайте свою комнату или войдите в чужую в списке ниже. Играйте с ботом в одиночном режиме.</p>
+<p>• Отмена своего хода доступна 3 секунды после хода (в онлайне) или в любой свой ход (у бота).</p>
 <p><b>ПК:</b> прицел следует за мышью один в один; свободная клетка под прицелом подсвечивается бледно-зелёным; ход — клик или Enter; WASD/стрелки, «+»/«−», Пробел и кнопки под полем переводят прицел в режим клетки-цели (центр экрана); ПКМ/СКМ/удержание — перемещение поля; Backspace — отмена хода.</p>
 <p><b>Телефон:</b> тап по прицелу (центр экрана) — ход в его клетку; тап по остальному полю хода не делает; перетаскивание одним пальцем — перемещение поля; щипок двумя пальцами — масштаб; кнопки под полем — масштаб и центр.</p>
 <p>• <a href="rules.html" target="_blank" rel="noopener">Полные правила игры</a></p>
@@ -138,7 +141,6 @@
 </div>
 <div id="auth-error" class="error"></div>
 <div id="auth-success" class="success"></div>
-<!-- P4: readonly + onfocus для подавления менеджеров паролей -->
 <form id="auth-form" novalidate autocomplete="off" data-form-type="other" data-lpignore="true" data-1p-ignore="true">
 <input type="text" id="username" placeholder="Имя пользователя" autocomplete="off" maxlength="8" autofocus readonly onfocus="this.removeAttribute('readonly')" spellcheck="false" autocorrect="off" autocapitalize="none" data-lpignore="true" data-1p-ignore="true">
 <div class="password-wrapper">
@@ -167,6 +169,7 @@
 </div>
 <div id="lobby-error" class="error"></div>
 <div class="scrollable">
+<button id="bot-game-btn" style="display:none;background:#ab47bc;margin-bottom:6px;">&#129302; Игра с ботом</button>
 <button id="create-game-btn" onclick="createGame()">&#10133; Создать игру</button>
 <div class="lobby-timer" id="lobby-timer" style="display: none;"></div>
 <div id="games-list" class="lobby-list">
@@ -236,12 +239,14 @@
 <div class="pause-state" id="pause-state-text"></div>
 <div id="pause-buttons"></div>
 </div>
-<div class="canvas-wrapper" id="canvas-wrapper">
+<div class="canvas-wrapper" id="canvas-wrapper" style="position:relative;">
+<div id="bot-thinking-indicator">&#129302; бот думает&#8230;</div>
 <canvas id="gameCanvas"></canvas>
 </div>
 <div class="controls-row dynamic" id="controls-dynamic" style="display: none;">
 <button id="undo-btn" onclick="undoMove(this)" style="display: none;">&#8617;&#65039; Отменить ход</button>
 <button id="nudge-btn" onclick="nudgeOpponent(this)" style="display: none;">&#129462; Пнуть</button>
+<button id="bot-lobby-btn" class="secondary" onclick="botToLobby()" style="display: none;">&#127968; В лобби (отмена игры)</button>
 </div>
 <div class="controls-row static">
 <button id="surrender-btn" onclick="surrender()">&#127987;&#65039; Сдаться</button>
@@ -253,9 +258,26 @@
 <div class="version" id="version-display-game"></div>
 </div>
 </div>
+<div class="help-overlay" id="bot-select-overlay" style="z-index:10005;">
+<div class="help-modal" style="max-width:480px;">
+<h3>&#129302; Игра с ботом</h3>
+<div id="bot-personas" style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;"></div>
+<div id="bot-sides" style="display:flex;gap:8px;margin:12px 0;"></div>
+<button onclick="startBotGameFromUI()" style="background:#4caf50;margin-top:8px;">&#9654; Начать партию</button>
+<button class="secondary" onclick="closeBotSelectModal()" style="margin-top:8px;">Отмена</button>
+</div>
+</div>
+<div class="help-overlay" id="bot-result-overlay" style="z-index:10006;">
+<div class="help-modal">
+<h2 id="bot-result-title"></h2>
+<p id="bot-result-text" style="margin:12px 0;"></p>
+<p id="bot-result-unlock" style="color:#2e7d32;font-weight:700;"></p>
+<button onclick="botPlayAgain()" style="background:#4caf50;margin:6px 4px 0;">&#128260; Ещё раз (смена сторон)</button>
+<button class="secondary" onclick="botToLobby()" style="margin:6px 4px 0;">&#127968; В лобби</button>
+</div>
+</div>
 <div id="boss-overlay"></div>
 <script type="module">
-// Точка входа: ui-модуль тянет за собой online → core → constants.
 import { VERSION } from './xo5-constants.js';
 import './xo5-ui.js';
 console.log('%c[GAME] 5 в ряд v' + VERSION + ': введите debug.help() для отладки', 'color: #667eea; font-weight: bold;');
