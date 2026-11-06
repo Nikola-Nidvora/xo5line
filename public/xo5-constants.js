@@ -1,15 +1,15 @@
 // ============================================================
 // XO5 · 5 в ряд · Модуль 2/8: константы и конфигурация
-// v2.0.6 (глобальная версия игры — точка истины)
+// v2.0.7 (глобальная версия игры — точка истины)
 // Чистый модуль: без DOM, без Firebase, без состояния партии.
 // ============================================================
 
 // ---------- Версия и авторство ----------
-export const VERSION = '2.0.6';
+export const VERSION = '2.0.7';
 export const AUTHORS = 'Ni.Coder & Qwen';
 
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.1';
+export const MODULE_VERSION = '1.0.2';
 if (typeof window !== 'undefined') {
   window.XO5_VERSIONS = window.XO5_VERSIONS || {};
   window.XO5_VERSIONS.constants = MODULE_VERSION;

@@ -1,6 +1,6 @@
 // ============================================================
 // XO5 · 5 в ряд · Модуль 4/8: онлайн (Firebase, сессии, лобби, транзакции)
-// v2.0.6 (проблема 3: принудительный переход в онлайн при входе соперника)
+// v2.0.7 (центрирование прицела на ход соперника на ПК)
 // ============================================================
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import {
@@ -34,7 +34,7 @@ import * as ui from './xo5-ui.js';
 import * as bot from './xo5-bot.js';
 
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.3';
+export const MODULE_VERSION = '1.0.4';
 if (typeof window !== 'undefined') {
   window.XO5_VERSIONS = window.XO5_VERSIONS || {};
   window.XO5_VERSIONS.online = MODULE_VERSION;
@@ -919,8 +919,6 @@ function listenToMyCreatedGame(gameId) {
       ui.updateCreateButton();
       currentGame = { id: gameId, ...game };
       myActiveGameId = gameId;
-      // Проблема 3: если игрок в бот-игре — плашка и принудительный переход.
-      // Если не в боте — штатный автоматический переход (как раньше).
       if (bot.isBotMode()) {
         const opponentName = (currentUser.uid === game.playerX) ? game.playerOName : game.playerXName || 'Соперник';
         ui.showOpponentJoinedTransition(opponentName, () => {
@@ -1254,7 +1252,6 @@ function initBotGame() {
   core.bindCanvas(el);
   core.attachCanvasListeners(el);
   core.resizeCanvas(ui.isFullscreen());
-  // ИСПРАВЛЕНИЕ: ставим символ ИГРОКА, а не бота
   core.setMySymbol(bot.getPlayerSymbol());
   core.setGameStatus(STATUS_PLAYING);
   core.resetCamera();
@@ -1333,7 +1330,9 @@ function listenToGame(gameId) {
         const mySymbol = currentUser.uid === game.playerX ? 'X' : 'O';
         if (core.gameState.moves[game.lastMove] !== mySymbol) {
           const [mx, my] = game.lastMove.split(',').map(Number);
-          core.smoothCenterOn(mx, my);
+          // v2.0.7: centerOnCell вместо smoothCenterOn — на ПК прицел
+          // перемещается на клетку хода соперника (как на телефоне)
+          core.centerOnCell(mx, my);
           core.highlightMove(game.lastMove);
           undoUsedThisCycle = false;
         }

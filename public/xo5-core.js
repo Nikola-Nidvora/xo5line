@@ -1,6 +1,6 @@
 // ============================================================
 // XO5 · 5 в ряд · Модуль 3/8: ядро (состояние, рендер, ввод)
-// v2.0.5 (версионирование модулей)
+// v2.0.7 (добавлен centerOnCell для центрирования на ход соперника/бота)
 // Без Firebase и без DOM-модалок. Связь с онлайном/UI — крючки.
 // ============================================================
 import {
@@ -12,7 +12,7 @@ import {
 } from './xo5-constants.js';
 
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.0';
+export const MODULE_VERSION = '1.0.1';
 if (typeof window !== 'undefined') {
   window.XO5_VERSIONS = window.XO5_VERSIONS || {};
   window.XO5_VERSIONS.core = MODULE_VERSION;
@@ -211,6 +211,18 @@ export function panCameraByCell(dx, dy) {
   camera.targetY += dy;
 }
 export function smoothCenterOn(x, y) { camera.targetX = x + 0.5; camera.targetY = y + 0.5; }
+// НОВОЕ В v2.0.7: центрирование камеры + прицела на указанной клетке.
+// На телефоне прицел всегда в центре, поэтому достаточно smoothCenterOn.
+// На ПК прицел следует за мышью — перемещаем mousePixel в центр канваса,
+// чтобы прицел оказался на клетке хода соперника/бота.
+export function centerOnCell(x, y) {
+  smoothCenterOn(x, y);
+  if (!touchMode && canvas) {
+    mousePixel = { x: canvas.width / 2, y: canvas.height / 2 };
+    hoverActive = true;
+    lastMouseAt = Date.now();
+  }
+}
 export function resetView() {
   if (gameState.lastMove) {
     const [x, y] = gameState.lastMove.split(',').map(Number);

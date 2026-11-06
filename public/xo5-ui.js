@@ -1,6 +1,6 @@
 // ============================================================
 // XO5 · 5 в ряд · Модуль 5/8: интерфейс (DOM, модалки, таймеры, лобби-рендер)
-// v2.0.6 (проблема 3: принудительный переход в онлайн при входе соперника)
+// v2.0.7 (защита от двойной модалки при быстром выходе из бота)
 // Держит весь DOM и визуальные состояния; сеть/транзакции — в xo5-online.js.
 // ============================================================
 import { doc, deleteDoc, getDoc, getDocs, updateDoc, setDoc, collection } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
@@ -20,7 +20,7 @@ import * as online from './xo5-online.js';
 import * as bot from './xo5-bot.js';
 
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.5';
+export const MODULE_VERSION = '1.0.6';
 if (typeof window !== 'undefined') {
   window.XO5_VERSIONS = window.XO5_VERSIONS || {};
   window.XO5_VERSIONS.ui = MODULE_VERSION;
@@ -125,7 +125,6 @@ let undoLabelTimer = null;
 let globalAudioContext = null;
 let lastDotState = '';
 let botThinkingUi = false;
-// Проблема 3: флаг ожидаемого принудительного перехода в онлайн-игру
 let onlineTransitionPending = false;
 let onlineTransitionTimer = null;
 
@@ -171,14 +170,10 @@ function showSleepWarning() {
   notif.className = 'join-notification active sleep-warning';
 }
 
-// ---------- Проблема 3: принудительный переход в онлайн ----------
-// Показывает плашку «Игрок X присоединился!» с кнопкой «Перейти».
-// Через 3 секунды (или сразу по кнопке) вызывает callback.
-// Отменить переход нельзя.
+// ---------- принудительный переход в онлайн (проблема 3) ----------
 export function showOpponentJoinedTransition(opponentName, callback) {
   const notif = document.getElementById('join-notification');
   if (!notif) { callback(); return; }
-  // Сбрасываем предыдущие таймеры
   if (notifTimer) { clearTimeout(notifTimer); notifTimer = null; }
   if (onlineTransitionTimer) { clearTimeout(onlineTransitionTimer); onlineTransitionTimer = null; }
   onlineTransitionPending = true;
@@ -1457,12 +1452,10 @@ function unlockHintFor(p) {
   return `${p.unlockNeed} ${word} над ${over ? over.name : 'предыдущим уровнем'}`;
 }
 export function showBotSelectModal() {
-  // Проблема 3: блокировка при ожидаемом переходе в онлайн
   if (onlineTransitionPending) {
     showMessage('lobby-error', '\u23F3 Соперник зашёл в вашу игру. Идёт переход в онлайн-партию...');
     return;
   }
-  // Проблема 3: блокировка при активной онлайн-партии
   if (online.getMyActiveGameId()) {
     showMessage('lobby-error', '\u26A0\uFE0F У вас есть активная онлайн-игра. Завершите её перед запуском бота.');
     return;
@@ -1587,13 +1580,11 @@ export function showBotResult(playerWon, personaId, st, newly) {
   overlay.classList.add('active');
   if (playerWon) spawnConfetti();
   showBotThinking(false);
-  bot.stopBotGame();
   stopTimerUpdate();
   endUndoCountdown();
   setTurnIndicator('\u{1F3C6} Игра завершена', 'paused-turn');
 }
 window.botPlayAgain = function() {
-  // Проблема 3: блокировка новой бот-игры при ожидаемом переходе в онлайн
   if (onlineTransitionPending) {
     showMessage('lobby-error', '\u23F3 Соперник зашёл в вашу игру. Идёт переход в онлайн-партию...');
     return;
@@ -1604,8 +1595,17 @@ window.botPlayAgain = function() {
   enterBotGameUI();
 };
 window.botToLobby = function() {
-  const overlay = document.getElementById('bot-result-overlay');
-  if (overlay) overlay.classList.remove('active');
+  // v2.0.7: защита от двойной модалки.
+  // Закрываем оба оверлея (бот-режима и онлайн-режима) + confetti.
+  // Если игрок побеждает и сразу жмёт «В лобби» до срабатывания
+  // таймера модалки (WIN_MODAL_DELAY = 2 сек), модалка не должна
+  // появиться в лобби.
+  const botOverlay = document.getElementById('bot-result-overlay');
+  if (botOverlay) botOverlay.classList.remove('active');
+  const resultOverlay = document.getElementById('result-overlay');
+  if (resultOverlay) resultOverlay.classList.remove('active');
+  const confetti = document.getElementById('confetti-layer');
+  if (confetti) confetti.remove();
   online.cleanupGame();
   hideBotLobbyButton();
   showScreen('lobby-screen');
@@ -1743,7 +1743,7 @@ if (DEBUG_ALLOWED) {
           activeSessionId: 'xxx-takeover-test',
           sessionLeaseUntil: Date.now() + 120000
         });
-        console.log('%c[TEST] activeSessionId подменён. В течение 60 сек сессия должна быть прервана.', 'color: #ff9800; font-weight: bold;');
+        console.log('%c[TEST] activeSessionId подменён.', 'color: #ff9800; font-weight: bold;');
       } catch (e) { console.error('Ошибка:', e); }
     },
     async countMyGames() {
