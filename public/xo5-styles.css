@@ -1,12 +1,17 @@
 /* ============================================================
- * XO5 — 5 в ряд · Стили игры
- * v2.0.8 (адаптация кнопок бот-модалки под узкие экраны)
- * MODULE_VERSION = 1.0.3
- * ============================================================ */
-
+XO5 — 5 в ряд · Стили игры
+v2.0.9 (версионирование модулей)
+============================================================ */
+/* ---------- Версия модуля (для реестра) ----------
+CSS-файлы не регистрируются в window.XO5_VERSIONS напрямую,
+но версия документируется в комментарии и в базе знаний.
+MODULE_VERSION = 1.0.4
+v2.0.9: контраст неактивных кнопок бот-модалки (тёмно-серый текст,
+замок ::before отдельной первой строкой, приглушение locked без opacity),
+компактные размеры кнопок, удалён .bot-tag (теги убраны из UI).
+Восстановлены правки v2.0.6: reset "*", блок .notif-go-btn. */
 /* ---------- Reset & base ---------- */
 * { margin: 0; padding: 0; box-sizing: border-box; }
-
 body {
 font-family: 'Segoe UI', Tahoma, sans-serif;
 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -19,12 +24,10 @@ overflow: auto;
 -webkit-user-select: none;
 user-select: none;
 }
-
 input, textarea {
 -webkit-user-select: text;
 user-select: text;
 }
-
 /* ---------- Container & modes ---------- */
 .container {
 background: white;
@@ -71,7 +74,6 @@ padding: 40px 6px 6px;
 .container.fullscreen-mode .canvas-wrapper { padding: 2px; }
 .container.fullscreen-mode .progress-container { height: 10px; }
 .container.fullscreen-mode .progress-bar .progress-text { font-size: 9px; }
-
 /* ---------- FS symbol ---------- */
 .fs-symbol {
 position: absolute;
@@ -87,7 +89,6 @@ text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 .container.fullscreen-mode .fs-symbol { display: block; }
 .fs-symbol.symbol-x { color: #667eea; }
 .fs-symbol.symbol-o { color: #764ba2; }
-
 /* ---------- Mobile ---------- */
 @media (max-width: 480px) {
 .container { padding: 48px 14px 14px; }
@@ -101,11 +102,9 @@ button { padding: 11px; margin: 5px 0; }
 .auth-bar { padding: 6px 10px; }
 .timer-section { padding: 6px 10px; }
 }
-
 /* ---------- Typography ---------- */
 h1 { text-align: center; color: #667eea; margin-bottom: 12px; font-size: 1.6em; }
 h2 { color: #667eea; margin-bottom: 8px; font-size: 1.1em; }
-
 /* ---------- Screens ---------- */
 .screen { display: none; flex: 1; flex-direction: column; overflow: hidden; }
 .screen.active { display: flex; }
@@ -124,7 +123,6 @@ overflow-y: auto;
 margin: 5px 0;
 padding-right: 5px;
 }
-
 /* ---------- Inputs ---------- */
 input {
 width: 100%; padding: 12px; margin: 8px 0;
@@ -135,7 +133,6 @@ input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
 display: none; width: 0; height: 0;
 }
-
 /* ---------- Buttons ---------- */
 button {
 width: 100%; padding: 12px; margin: 6px 0;
@@ -156,7 +153,6 @@ transform: none;
 button.secondary.busy,
 button.settings-menu-item.busy,
 button.tool-btn.busy { color: rgba(51,51,51,0.4); }
-
 /* ---------- Errors / successes ---------- */
 .error, .success {
 padding: 10px; border-radius: 8px; margin: 8px 0;
@@ -164,7 +160,6 @@ color: white; display: none; font-size: 14px;
 }
 .error { background: #ff5252; }
 .success { background: #4caf50; }
-
 /* ---------- Password wrapper ---------- */
 .password-wrapper { position: relative; margin: 8px 0; }
 .password-wrapper input { margin: 0; padding-right: 46px; }
@@ -176,7 +171,6 @@ border: none; border-radius: 6px;
 font-size: 16px; cursor: pointer; line-height: 1;
 }
 .eye-btn:hover { background: #e0e0e0; transform: translateY(-50%); }
-
 /* ---------- Consent ---------- */
 .consent-wrap {
 display: flex; align-items: flex-start; gap: 8px;
@@ -185,7 +179,6 @@ margin: 6px 0 2px 0; cursor: pointer;
 .consent-wrap input { width: auto; margin: 2px 0 0 0; flex-shrink: 0; }
 .consent-text { font-size: 11px; color: #777; line-height: 1.4; }
 .consent-text a { color: #667eea; }
-
 /* ---------- Auth bar ---------- */
 .auth-bar {
 background: #f5f5f5;
@@ -204,7 +197,6 @@ font-weight: bold;
 color: #667eea;
 font-size: 15px;
 }
-
 /* ---------- Top coin (lobby/auth) ---------- */
 .top-coin {
 position: absolute;
@@ -214,7 +206,6 @@ transform: translateX(-50%);
 z-index: 55;
 pointer-events: none;
 }
-
 /* ---------- Update banner ---------- */
 .update-banner {
 display: none;
@@ -241,7 +232,6 @@ width: auto; padding: 5px 8px; margin: 0;
 background: transparent; color: #856404; font-size: 12px;
 }
 .update-banner-close:hover { background: rgba(0,0,0,0.06); }
-
 /* ---------- Top tools ---------- */
 .top-tools {
 position: absolute;
@@ -267,7 +257,6 @@ border-radius: 8px;
 transition: background 0.2s;
 }
 .tool-btn:hover { background: #e0e0e0; transform: none; }
-
 /* ---------- Turn strip ---------- */
 .turn-strip {
 display: none;
@@ -283,7 +272,6 @@ color: #666;
 white-space: nowrap;
 }
 .turn-strip .turn-indicator { flex: 1; display: flex; justify-content: center; }
-
 /* ---------- Connection dot ---------- */
 .connection-dot {
 position: absolute; top: 20px; left: 10px;
@@ -294,12 +282,10 @@ transition: background 0.3s; cursor: help;
 .connection-dot.online { background: #4caf50; }
 .connection-dot.offline { background: #ff5252; animation: blink 1s infinite; }
 .connection-dot.blink-once { animation: blinkOnce 0.5s ease 4; }
-
 @keyframes blinkOnce {
 0%, 100% { opacity: 1; }
 50% { opacity: 0.15; }
 }
-
 /* ---------- Join notification ---------- */
 .join-notification {
 display: none; position: fixed; top: 20px; left: 50%;
@@ -320,8 +306,7 @@ animation: slideDown 0.5s ease, pulse-danger 2s infinite 0.5s;
 from { transform: translate(-50%, -100%); opacity: 0; }
 to { transform: translate(-50%, 0); opacity: 1; }
 }
-
-/* ---------- Кнопка «Перейти» в плашке уведомления ---------- */
+/* ---------- Кнопка «Перейти» в плашке уведомления (v2.0.6) ---------- */
 .join-notification .notif-go-btn {
 display: inline-block;
 width: auto;
@@ -341,7 +326,6 @@ transition: background 0.15s;
 background: #ffffff;
 transform: none;
 }
-
 /* ---------- Confetti ---------- */
 .confetti-layer {
 position: fixed; inset: 0; pointer-events: none;
@@ -359,7 +343,6 @@ to { transform: translateY(112vh) rotate(720deg); }
 @media (prefers-reduced-motion: reduce) {
 .confetti-piece { animation: none; display: none; }
 }
-
 /* ---------- Lobby ---------- */
 .lobby-group-title {
 font-size: 11px; font-weight: bold; color: #667eea;
@@ -393,7 +376,6 @@ justify-content: space-between; align-items: center;
 .lobby-countdown { font-weight: bold; color: #ff9800; }
 .lobby-item button { width: auto; padding: 8px 16px; margin: 0; }
 .lobby-empty { text-align: center; padding: 20px; color: #888; font-size: 14px; }
-
 /* ---------- User info + logo ---------- */
 .user-info {
 background: #f5f5f5; padding: 10px 15px; border-radius: 10px;
@@ -429,7 +411,6 @@ to { transform: rotateY(360deg); }
 @media (prefers-reduced-motion: reduce) {
 .logo-rotor { animation: none; }
 }
-
 /* ---------- Canvas ---------- */
 canvas {
 border: 2px solid #667eea; border-radius: 10px;
@@ -437,7 +418,6 @@ display: block; margin: 0 auto; background: #fafafa;
 cursor: default; flex-shrink: 0;
 touch-action: none;
 }
-
 /* ---------- Controls row ---------- */
 .controls-row {
 display: flex;
@@ -466,7 +446,6 @@ white-space: nowrap;
 #undo-btn:hover { background: #f57c00; }
 #nudge-btn { background: #ab47bc; }
 #nudge-btn:hover { background: #8e24aa; }
-
 /* ---------- Settings (gear menu) ---------- */
 .settings-wrapper { position: relative; flex-shrink: 0; }
 .settings-btn {
@@ -516,7 +495,6 @@ transition: background 0.15s;
 .settings-menu-item:hover { background: #e0e0e0; transform: none; }
 .settings-menu-item.danger { background: #ffebee; color: #c62828; }
 .settings-menu-item.danger:hover { background: #ffcdd2; }
-
 /* ---------- Sleep saver ---------- */
 .sleep-saver {
 display: none;
@@ -542,9 +520,7 @@ perspective: 900px;
 pointer-events: none;
 }
 .sleep-rotor {
-width: 100%;
-height: 100%;
-position: relative;
+width: 100%; height: 100%; position: relative;
 transform-style: preserve-3d;
 animation: logoSpin 4s linear infinite;
 }
@@ -561,7 +537,6 @@ backface-visibility: hidden;
 @media (prefers-reduced-motion: reduce) {
 .sleep-rotor { animation: none; }
 }
-
 /* ---------- Boss overlay ---------- */
 #boss-overlay {
 display: none;
@@ -571,7 +546,6 @@ background: #ffffff;
 z-index: 2147483647;
 cursor: default;
 }
-
 /* ---------- Game header ---------- */
 .game-header {
 display: flex; justify-content: space-between; align-items: center;
@@ -635,7 +609,6 @@ white-space: nowrap;
 .turn-indicator.my-turn { background: #4caf50; color: white; }
 .turn-indicator.opponent-turn { background: #ff9800; color: white; }
 .turn-indicator.paused-turn { background: #9e9e9e; color: white; }
-
 /* ---------- Room header ---------- */
 .room-header {
 display: flex; justify-content: center; align-items: center;
@@ -648,7 +621,6 @@ border-radius: 10px; margin-bottom: 8px; flex-shrink: 0;
 font-size: 14px; font-weight: bold; color: #667eea;
 display: flex; align-items: center; gap: 6px;
 }
-
 /* ---------- Timer / progress ---------- */
 .timer-section {
 padding: 8px 15px; background: #f5f5f5;
@@ -688,7 +660,6 @@ text-shadow: 0 1px 2px rgba(0,0,0,0.3); white-space: nowrap;
 0%, 100% { opacity: 1; }
 50% { opacity: 0.7; }
 }
-
 /* ---------- Banners ---------- */
 .disconnect-banner {
 display: none; padding: 10px; background: #fff3cd;
@@ -699,7 +670,6 @@ margin-bottom: 8px; text-align: center; flex-shrink: 0;
 .disconnect-banner .banner-text { font-weight: bold; color: #856404; margin-bottom: 5px; font-size: 13px; }
 .disconnect-banner .banner-timer { font-size: 16px; font-weight: bold; color: #ff5252; }
 .disconnect-banner button { margin-top: 8px; padding: 6px 16px; font-size: 13px; }
-
 .pause-request-banner {
 display: none; padding: 10px; background: #e3f2fd;
 border: 2px solid #2196f3; border-radius: 10px;
@@ -711,7 +681,6 @@ margin-bottom: 8px; text-align: center; flex-shrink: 0;
 display: inline-block; width: auto; margin: 0 4px;
 padding: 6px 16px; font-size: 13px;
 }
-
 .resume-notice-banner {
 display: none; padding: 10px; background: #e8f5e9;
 border: 2px solid #4caf50; border-radius: 10px;
@@ -719,7 +688,6 @@ margin-bottom: 8px; text-align: center; flex-shrink: 0;
 }
 .resume-notice-banner.active { display: block; }
 .resume-notice-banner .banner-text { font-weight: bold; color: #1b5e20; font-size: 13px; }
-
 .pause-banner {
 display: none; padding: 12px; background: #eceff1;
 border: 2px solid #9e9e9e; border-radius: 10px;
@@ -738,20 +706,17 @@ font-size: 12px; color: #455a64; font-style: italic; margin-bottom: 6px;
 display: inline-block; width: auto; margin: 0 4px;
 padding: 8px 18px; font-size: 13px;
 }
-
 /* ---------- Canvas wrapper ---------- */
 .canvas-wrapper {
 flex: 1; display: flex; justify-content: center; align-items: center;
 padding: 10px; min-height: 0; overflow: hidden;
 }
-
 /* ---------- Version ---------- */
 .version {
 text-align: center; font-size: 11px; color: #999;
 margin-top: 10px; padding-top: 8px;
 border-top: 1px solid #e0e0e0; flex-shrink: 0;
 }
-
 /* ---------- Help overlay ---------- */
 .help-overlay {
 display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -768,7 +733,6 @@ box-shadow: 0 20px 60px rgba(0,0,0,0.3);
 .help-modal h3 { color: #667eea; margin-bottom: 12px; font-size: 18px; }
 .help-text p { margin: 6px 0; font-size: 13px; color: #444; line-height: 1.5; }
 .help-text a { color: #667eea; }
-
 /* ---------- Debug ---------- */
 .debug-indicator {
 display: none; position: fixed; top: 15px; right: 15px;
@@ -823,8 +787,7 @@ width: 100%; padding: 10px; background: #45475a; color: #cdd6f4;
 border: none; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 8px;
 }
 .debug-close-btn:hover { background: #585b70; }
-
-/* ---------- Debug versions line ---------- */
+/* ---------- Debug versions line (v2.0.5) ---------- */
 .debug-versions-line {
 margin-top: 12px;
 padding: 8px 12px;
@@ -837,7 +800,6 @@ text-align: center;
 cursor: help;
 word-break: break-all;
 }
-
 /* ---------- Result / confirm / delete account ---------- */
 .result-overlay, .confirm-overlay, .delete-account-overlay {
 display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -888,7 +850,6 @@ flex: 1; padding: 12px; margin: 0;
 border: none; border-radius: 10px;
 font-size: 15px; font-weight: bold; cursor: pointer;
 }
-
 /* ---------- Ban overlay ---------- */
 .ban-overlay {
 display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -903,20 +864,21 @@ box-shadow: 0 20px 60px rgba(0,0,0,0.3);
 }
 .ban-modal h3 { color: #ff5252; margin-bottom: 15px; font-size: 20px; }
 .ban-modal .ban-text { color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
-
-/* ---------- Bot mode styles ---------- */
+/* ---------- Bot mode styles (v2.0.9: контраст, замок, компактность) ---------- */
 .bot-persona-btn, .bot-side-btn {
 flex: 1 1 0;
 min-width: 70px;
-padding: 10px 8px;
+padding: 7px 6px;
 border: 2px solid #e0e0e0;
 border-radius: 10px;
 background: #f5f5f5;
 cursor: pointer;
-font-size: 13px;
+font-size: 12px;
 font-weight: 600;
+line-height: 1.2;
 transition: all 0.15s;
 text-align: center;
+color: #3d3d3d;
 }
 .bot-persona-btn:hover:not(:disabled), .bot-side-btn:hover {
 background: #e8f0fe;
@@ -928,40 +890,40 @@ background: #e8f0fe;
 color: #667eea;
 }
 .bot-persona-btn.locked {
-opacity: 0.5;
+color: #6e6e6e;
 cursor: not-allowed;
 background: #f0f0f0;
 }
+/* v2.0.9: замок — отдельной первой строкой по центру (без эмодзи в JS) */
+.bot-persona-btn.locked::before {
+content: '\1F512';
+display: block;
+font-size: 11px;
+line-height: 1;
+margin-bottom: 2px;
+}
+.bot-persona-btn.locked .bot-score { color: #757575; }
 .bot-persona-btn:disabled {
 cursor: not-allowed;
 }
-.bot-tag {
-display: block;
-font-size: 11px;
-color: #666;
-font-weight: normal;
-margin-top: 2px;
-}
 .bot-score {
 display: block;
-font-size: 11px;
+font-size: 10px;
 color: #4caf50;
 font-weight: 700;
-margin-top: 2px;
+margin-top: 1px;
+line-height: 1.2;
 }
-
-/* v2.0.8: адаптация кнопок бот-модалки под узкие экраны */
+/* v2.0.8 + v2.0.9: адаптация кнопок бот-модалки под узкие экраны */
 @media (max-width: 400px) {
 .bot-persona-btn, .bot-side-btn {
-  min-width: 60px;
-  padding: 8px 6px;
-  font-size: 12px;
+min-width: 60px;
+padding: 6px 4px;
+font-size: 11px;
 }
-.bot-tag, .bot-score {
-  font-size: 10px;
+.bot-score { font-size: 9px; }
+.bot-persona-btn.locked::before { font-size: 10px; }
 }
-}
-
 #bot-thinking-indicator {
 display: none;
 position: absolute;

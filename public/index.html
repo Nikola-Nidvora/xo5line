@@ -6,6 +6,7 @@
 <title>5 в ряд — Бесконечное поле</title>
 <!-- Favicon -->
 <link rel="icon" href="favicon.ico" type="image/x-icon">
+<!-- v2.0.9: синхронизация gamever с VERSION из xo5-constants.js (1.0.4) -->
 <style>
 *{box-sizing:border-box}
 body{margin:0;font:16px/1.6 "Segoe UI",Tahoma,sans-serif;color:#333;
@@ -38,9 +39,8 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <header>
 <h1>5 в ряд — Бесконечное поле</h1>
 <p class="authors">Ni.Coder &amp; Qwen</p>
-<p class="gamever">v2.0.8</p>
+<p class="gamever">v2.0.9</p>
 </header>
-
 <section class="card">
 <h2>Визитка</h2>
 <p>Онлайн-партия для двоих на бесконечном поле: соберите линию
@@ -52,7 +52,6 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 Игра сама подскажет, когда на сайте появится новая версия.</p>
 <p class="dim small">Антибосс (Esc): скрытие активной вкладки белым экраном. Повторное нажатие Esc возвращает страницу.</p>
 </section>
-
 <section class="card">
 <h2>Правила и документы</h2>
 <ul>
@@ -61,7 +60,6 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <li><a href="terms.html">Пользовательское соглашение</a></li>
 </ul>
 </section>
-
 <footer>
 <p>&#169; Ni.Coder &amp; Qwen, 2026. Бесплатный некоммерческий проект.</p>
 </footer>
@@ -69,16 +67,16 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <div id="boss-overlay"></div>
 <script>
 (function(){
-  var boss = false;
-  document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape') {
-      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-      e.preventDefault();
-      boss = !boss;
-      var o = document.getElementById('boss-overlay');
-      if (o) o.style.display = boss ? 'block' : 'none';
-    }
-  });
+var boss = false;
+document.addEventListener('keydown', function(e){
+if (e.key === 'Escape') {
+if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+e.preventDefault();
+boss = !boss;
+var o = document.getElementById('boss-overlay');
+if (o) o.style.display = boss ? 'block' : 'none';
+}
+});
 })();
 </script>
 </body>
