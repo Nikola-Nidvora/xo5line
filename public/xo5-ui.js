@@ -1,10 +1,10 @@
 // ============================================================
 // XO5 · 5 в ряд · Модуль 5/8: интерфейс (DOM, модалки, таймеры, лобби-рендер)
-// v2.0.9 (защита от двойной модалки при быстром выходе из бота)
+// v2.1.1 (хотфикс: бот-кнопка «В лобби» не должна жить в онлайн-партии)
 // Держит весь DOM и визуальные состояния; сеть/транзакции — в xo5-online.js.
-// v2.0.9: рендер персон без инлайнового замка (замок — CSS ::before)
-// и без тегов (поле tag удалено в bot 1.0.8); дефолт персоны 'novice';
-// убран title с тегом в enterBotGameUI.
+// v2.1.1: #bot-lobby-btn принудительно скрывается вне бот-режима
+// (syncDynamicRow, resetGameDom); защиты в botToLobby/botPlayAgain от
+// броска активной онлайн-партии через устаревший оверлей бота.
 // ============================================================
 import { doc, deleteDoc, getDoc, getDocs, updateDoc, setDoc, collection } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
@@ -23,7 +23,7 @@ import * as online from './xo5-online.js';
 import * as bot from './xo5-bot.js';
 
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.7';
+export const MODULE_VERSION = '1.0.9';
 if (typeof window !== 'undefined') {
  window.XO5_VERSIONS = window.XO5_VERSIONS || {};
  window.XO5_VERSIONS.ui = MODULE_VERSION;
@@ -143,6 +143,14 @@ export function getLastOppResumeFlag() { return lastOppResumeFlag; }
 export function setLastOppResumeFlag(v) { lastOppResumeFlag = !!v; }
 export function setForcedDisconnect(v) { forcedDisconnect = !!v; }
 export function isOnlineTransitionPending() { return onlineTransitionPending; }
+
+// ---------- классы режимов на контейнере (v2.1.0) ----------
+function applyModeClasses() {
+ const mc = document.getElementById('main-container');
+ if (!mc) return;
+ mc.classList.toggle('bot-mode', bot.isBotMode());
+ mc.classList.toggle('touch-mode', core.getTouchMode());
+}
 
 // ---------- уведомления сверху ----------
 export function clearTopNotification() {
@@ -446,13 +454,13 @@ core.setLotteryRevealHook((sym, animated) => {
  }
 });
 
-// ---------- индикатор хода и шапка партии ----------
+// ---------- индикатор хода (v2.1.0: только верхняя панель) и шапка партии ----------
 export function setTurnIndicator(text, cls) {
- const a = document.getElementById('turn-indicator');
- const b = document.getElementById('turn-indicator-fs');
- [a, b].forEach(el => {
- if (el) { el.textContent = text; el.className = 'turn-indicator ' + cls; }
- });
+ const el = document.getElementById('turn-indicator-top');
+ if (!el) return;
+ el.textContent = text;
+ el.className = 'turn-indicator ' + cls;
+ el.style.display = '';
 }
 function setFsSymbol(sym) {
  const el = document.getElementById('fs-symbol');
@@ -469,6 +477,7 @@ function setPlayerNameText() {
 }
 export function updateGameUI() {
  if (!core.getCanvasEl()) return;
+ applyModeClasses();
  if (bot.isBotMode()) {
  const persona = bot.getBotPersona();
  const oppNameEl = document.getElementById('opponent-name');
@@ -584,20 +593,21 @@ export function showScreen(id) {
  container.classList.remove('compact-mode');
  container.classList.remove('lobby-min');
  core.resizeCanvas(fullscreenMode);
+ applyModeClasses();
  } else {
  container.classList.add('compact-mode');
  container.classList.remove('game-mode');
  if (id === 'lobby-screen') container.classList.add('lobby-min');
  else container.classList.remove('lobby-min');
+ const tic = document.getElementById('turn-indicator-top');
+ if (tic) tic.style.display = 'none';
  }
  const ttCoin = document.getElementById('top-coin');
  if (ttCoin) ttCoin.style.display = (id === 'game-screen') ? 'none' : '';
  const ttGear = document.getElementById('tt-gear');
  const ttFs = document.getElementById('tt-fs');
- const ttSleep = document.getElementById('tt-sleep');
  if (ttGear) ttGear.style.display = '';
  if (ttFs) ttFs.style.display = (id === 'game-screen') ? '' : 'none';
- if (ttSleep) ttSleep.style.display = (id === 'auth-screen') ? 'none' : '';
  refreshSettingsMenu();
  if (id === 'auth-screen') {
  setTimeout(() => {
@@ -626,9 +636,11 @@ window.addEventListener('resize', () => {
 export function refreshSettingsMenu() {
  const lo = document.getElementById('mi-logout');
  const de = document.getElementById('mi-delete');
+ const sl = document.getElementById('mi-sleep');
  const hasSession = !!(online.getCurrentUser() && online.getAppEntered());
  if (lo) lo.style.display = hasSession ? '' : 'none';
  if (de) de.style.display = hasSession ? '' : 'none';
+ if (sl) sl.style.display = hasSession ? '' : 'none';
 }
 window.toggleTopSettings = function(event) {
  event.stopPropagation();
@@ -1095,6 +1107,8 @@ function syncDynamicRow() {
  const u = document.getElementById('undo-btn');
  const n = document.getElementById('nudge-btn');
  const b = document.getElementById('bot-lobby-btn');
+ // v2.1.1: бот-кнопка «В лобби» не имеет права быть видимой вне бот-режима
+ if (b && !bot.isBotMode()) b.style.display = 'none';
  const vis = (u && u.style.display !== 'none') || (n && n.style.display !== 'none') || (b && b.style.display !== 'none');
  row.style.display = vis ? 'flex' : 'none';
 }
@@ -1151,6 +1165,9 @@ export function resetGameDom() {
  document.getElementById('resume-notice-banner').classList.remove('active');
  const nudgeBtn = document.getElementById('nudge-btn');
  if (nudgeBtn) nudgeBtn.style.display = 'none';
+ // v2.1.1: гасим бот-кнопку при входе в онлайн-партию и при закрытии модалок
+ const botLobbyBtn = document.getElementById('bot-lobby-btn');
+ if (botLobbyBtn) botLobbyBtn.style.display = 'none';
  endUndoCountdown();
  syncDynamicRow();
 }
@@ -1478,8 +1495,6 @@ function renderBotPersonas() {
  btn.className = 'bot-persona-btn' + (p.id === botSelectedPersona && unlocked ? ' sel' : '') + (!unlocked ? ' locked' : '');
  btn.disabled = !unlocked;
  const st = bot.getBotStats()[p.id];
- // v2.0.9: замок рисуется CSS (::before первой строкой), теги удалены —
- // остаются только имя и счёт
  btn.innerHTML = p.name + '<br><span class="bot-score">' + st.w + 'W / ' + st.l + 'L</span>';
  if (!unlocked) btn.title = 'Откроется: ' + unlockHintFor(p);
  btn.addEventListener('click', () => {
@@ -1529,6 +1544,8 @@ function hideBotLobbyButton() {
 }
 function enterBotGameUI() {
  hideOnlineElementsInBotMode();
+ const mc = document.getElementById('main-container');
+ if (mc) mc.classList.add('bot-mode');
  const oppName = document.getElementById('opponent-name');
  if (oppName) {
  const persona = bot.getBotPersona();
@@ -1552,6 +1569,8 @@ export function hideOnlineElementsInBotMode() {
 export function showOnlineElements() {
  const ids = ['disconnect-banner', 'pause-request-banner', 'resume-notice-banner', 'pause-banner'];
  ids.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = ''; });
+ const mc = document.getElementById('main-container');
+ if (mc) mc.classList.remove('bot-mode');
  const dot = document.getElementById('opponent-status-dot');
  if (dot) dot.style.display = '';
  const oppStats = document.getElementById('opponent-stats-inline');
@@ -1584,6 +1603,13 @@ export function showBotResult(playerWon, personaId, st, newly) {
 }
 window.botPlayAgain = function() {
  if (onlineTransitionPending) return;
+ // v2.1.1: защита от запуска бота поверх активной онлайн-партии
+ const g = online.getCurrentGame();
+ if (g && (g.status === STATUS_PLAYING || g.status === STATUS_PAUSED)) {
+ const overlay = document.getElementById('bot-result-overlay');
+ if (overlay) overlay.classList.remove('active');
+ return;
+ }
  document.getElementById('bot-result-overlay').classList.remove('active');
  bot.startBotGame(botSelectedPersona, botSelectedSide === 'X' ? 'O' : 'X');
  online.startGame(false);
@@ -1592,6 +1618,9 @@ window.botPlayAgain = function() {
 window.botToLobby = function() {
  const overlay = document.getElementById('bot-result-overlay');
  if (overlay) overlay.classList.remove('active');
+ // v2.1.1: не бросаем активную онлайн-партию через устаревший оверлей бота
+ const g = online.getCurrentGame();
+ if (g && (g.status === STATUS_PLAYING || g.status === STATUS_PAUSED)) return;
  const resOverlay = document.getElementById('result-overlay');
  if (resOverlay) resOverlay.classList.remove('active');
  const layer = document.getElementById('confetti-layer');

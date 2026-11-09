@@ -1,5 +1,5 @@
 // ============================================================
-// XO5 · 5 в ряд · Модуль бота (v2.0.9)
+// XO5 · 5 в ряд · Модуль бота (v2.1.0)
 // MODULE_VERSION 1.0.8
 // Локальный ИИ для одиночной игры без Firebase.
 // Прогрессия: Новичок → Умелец → Мастер → Легенда
@@ -9,7 +9,7 @@
 // разблокировок, realRevealedSet для синхронизации раскрытия.
 // v2.0.7: защита от двойной модалки (botResultShown),
 // центрирование прицела на ход бота (centerOnCell).
-// v2.0.9: переименование прогрессии (новые id), миграция
+// v2.1.0: переименование прогрессии (новые id), миграция
 // статистики из старых id, удаление поля tag.
 // ============================================================
 import {
@@ -32,7 +32,7 @@ const LS_KEY = 'xo5botStats';
 const BOT_THINK_MIN_MS = 400;
 const BOT_THINK_MAX_MS = 900;
 
-// ------------------- Персонажи (v2.0.9: новые id и имена, без tag) ----------
+// ------------------- Персонажи (v2.1.0: новые id и имена, без tag) ----------
 export const PERSONAS = [
  { id: 'novice', name: 'Новичок', unlockNeed: 0, unlockOver: null, unlockText: '' },
  { id: 'craftsman', name: 'Умелец', unlockNeed: 1, unlockOver: 'novice', unlockText: '1 победа над Новичком' },
@@ -73,7 +73,7 @@ function refreshUndoButton() {
 }
 
 // ------------------- Статистика ----------
-// v2.0.9: миграция статистики из старых id (student/engineer/gm/expert)
+// v2.1.0: миграция статистики из старых id (student/engineer/gm/expert)
 const LEGACY_PERSONA_IDS = { student: 'novice', engineer: 'craftsman', gm: 'master', expert: 'legend' };
 function migrateStatsRaw(raw) {
  if (!raw || typeof raw !== 'object') return null;

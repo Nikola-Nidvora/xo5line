@@ -6,7 +6,12 @@
 <title>5 в ряд - Бесконечное поле</title>
 <!-- Favicon -->
 <link rel="icon" href="favicon.ico" type="image/x-icon">
-<!-- v2.0.6: версионирование модулей + бот-режим -->
+<!-- v2.0.7: верхняя панель одним блоком .top-bar:
+точка соединения → символ X/O (только fullscreen) → индикатор хода (по центру)
+→ шестерёнка → fullscreen. Кнопки «Справка» и «Сон» переехали в меню шестерёнки
+(порядок: К визитке, Справка, Уснуть, Выйти, Удалить аккаунт).
+Удалены дубли индикатора хода: #turn-indicator (timer-section) и #turn-indicator-fs (turn-strip).
+Кнопки зума получили id для скрытия в touch-mode. -->
 <link rel="stylesheet" href="xo5-styles.css">
 </head>
 <body>
@@ -111,7 +116,24 @@
 </div>
 </div>
 <div class="container compact-mode" id="main-container">
+<div class="top-bar" id="top-bar">
 <div class="connection-dot" id="connection-dot" title="Соединение: установка..."></div>
+<div class="fs-symbol" id="fs-symbol"></div>
+<div class="turn-indicator-top-wrap" id="turn-indicator-top-wrap">
+<div id="turn-indicator-top" class="turn-indicator" style="display: none;"></div>
+</div>
+<div class="settings-wrapper">
+<button class="settings-btn" id="tt-gear" onclick="toggleTopSettings(event)" title="Настройки">&#9881;&#65039;</button>
+<div class="settings-menu" id="top-settings-menu" style="display: none;">
+<button class="settings-menu-item" id="mi-home" onclick="gotoHome()">&#127968; К визитке</button>
+<button class="settings-menu-item" id="mi-help" onclick="openHelpModal(); closeTopSettings();">&#10068; Справка</button>
+<button class="settings-menu-item" id="mi-sleep" onclick="enterSleepNow(); closeTopSettings();">&#128164; Уснуть</button>
+<button class="settings-menu-item" id="mi-logout" onclick="logout(this); closeTopSettings();">&#128682; Выйти</button>
+<button class="settings-menu-item danger" id="mi-delete" onclick="showDeleteAccountModal(); closeTopSettings();">&#128465;&#65039; Удалить аккаунт</button>
+</div>
+</div>
+<button class="tool-btn" id="tt-fs" onclick="toggleFullscreenMode()" title="Поле на весь экран / выйти" style="display: none;">&#9974;</button>
+</div>
 <div class="top-coin" id="top-coin" aria-hidden="true">
 <div class="logo-anim">
 <div class="logo-rotor">
@@ -119,20 +141,6 @@
 <span class="logo-face logo-o">O</span>
 </div>
 </div>
-</div>
-<div class="fs-symbol" id="fs-symbol"></div>
-<div class="top-tools">
-<button class="tool-btn" id="tt-help" onclick="openHelpModal()" title="Краткая справка">&#10068;</button>
-<div class="settings-wrapper">
-<button class="settings-btn" id="tt-gear" onclick="toggleTopSettings(event)" title="Настройки">&#9881;&#65039;</button>
-<div class="settings-menu" id="top-settings-menu" style="display: none;">
-<button class="settings-menu-item" id="mi-home" onclick="gotoHome()">&#127968; К визитке</button>
-<button class="settings-menu-item" id="mi-logout" onclick="logout(this); closeTopSettings();">&#128682; Выйти</button>
-<button class="settings-menu-item danger" id="mi-delete" onclick="showDeleteAccountModal(); closeTopSettings();">&#128465;&#65039; Удалить аккаунт</button>
-</div>
-</div>
-<button class="tool-btn" id="tt-fs" onclick="toggleFullscreenMode()" title="Поле на весь экран / выйти" style="display: none;">&#9974;</button>
-<button class="tool-btn" id="tt-sleep" onclick="enterSleepNow()" title="Режим сна" style="display: none;">&#128164;</button>
 </div>
 <div id="auth-screen" class="screen active">
 <div class="scrollable">
@@ -204,7 +212,6 @@
 <div class="timer-section">
 <div class="turn-strip">
 <span class="turn-strip-party" id="game-timer-fs">0:00</span>
-<div id="turn-indicator-fs" class="turn-indicator"></div>
 </div>
 <div class="timer-row">
 <span class="label">&#9201;&#65039; Партия:</span>
@@ -212,7 +219,6 @@
 </div>
 <div class="timer-row turn-row">
 <span class="label">&#127919; Ход:</span>
-<div id="turn-indicator" class="turn-indicator"></div>
 <span class="value" id="turn-timer-text">20:00</span>
 </div>
 <div class="progress-container">
@@ -252,8 +258,8 @@
 <button id="surrender-btn" onclick="surrender()">&#127987;&#65039; Сдаться</button>
 <button id="pause-btn" onclick="requestPause(this)">&#9208;&#65039; Пауза</button>
 <button onclick="resetView()">&#127919; Центр</button>
-<button onclick="zoomIn()">&#128269;+</button>
-<button onclick="zoomOut()">&#128269;&#8722;</button>
+<button id="zoom-in-btn" onclick="zoomIn()">&#128269;+</button>
+<button id="zoom-out-btn" onclick="zoomOut()">&#128269;&#8722;</button>
 </div>
 <div class="version" id="version-display-game"></div>
 </div>
