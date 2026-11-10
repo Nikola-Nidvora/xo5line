@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>5 в ряд — Политика конфиденциальности</title>
+<meta name="description" content="Политика конфиденциальности проекта XO5Line: какие данные обрабатываются, где хранятся, как удалить аккаунт.">
+<title>Политика конфиденциальности — XO5Line</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;font:16px/1.6 "Segoe UI",Tahoma,sans-serif;color:#333;
@@ -32,18 +33,15 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <body>
 <main class="wrap">
 <a class="back" href="index.html">&#8592; К визитке</a>
-
 <header>
 <h1>5 в ряд — Политика конфиденциальности</h1>
 <p class="authors">Ni.Coder &amp; Qwen</p>
 <p class="gamever">v2.0.5</p>
 </header>
-
 <section class="card">
 <h2>&#128220; 1. Общие положения</h2>
 <p>Настоящая политика объясняет, какие данные обрабатывает проект «5 в ряд» (далее — Сервис), с какими целями и как эти данные удалить. Сервис создан и сопровождается авторами <b>Ni.Coder &amp; Qwen</b> без образования юридического лица; функции хранения и обработки данных переданы платформе Google Firebase.</p>
 </section>
-
 <section class="card">
 <h2>&#128202; 2. Состав обрабатываемых данных</h2>
 <ul>
@@ -55,12 +53,10 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <li><b>Журнал действий администратора:</b> записи о банах, удалениях и изменениях настроек с датой и именем администратора.</li>
 </ul>
 </section>
-
 <section class="card">
 <h2>&#127919; 3. Цели обработки</h2>
 <p>Обеспечение работы игры: идентификация пользователя, сохранение прогресса и статистики, защита от злоупотреблений (баны, очистка заброшенных игр и аккаунтов), разбор спорных ситуаций по журналу действий.</p>
 </section>
-
 <section class="card">
 <h2>&#128451;&#65039; 4. Место и сроки хранения</h2>
 <p>Данные хранятся в <b>Google Firebase</b> (Cloud Firestore и Authentication), проект <code>xo5line</code>, регион <b>eur3 (Европа)</b>.</p>
@@ -71,17 +67,14 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <li>либо по запросу пользователя администратору.</li>
 </ul>
 </section>
-
 <section class="card">
 <h2>&#128274; 5. Передача данных</h2>
 <p>Данные <b>не передаются третьим лицам</b>, кроме поставщика хранения и хостинга (Google). Реклама и аналитика с сбором персональных данных на Сервисе не используются.</p>
 </section>
-
 <section class="card">
 <h2>&#127850; 6. Cookies и локальное хранилище</h2>
 <p>Сервис <b>не использует отслеживающие cookies</b>. В локальном хранилище браузера держатся только технические записи: идентификатор сессии и идентификатор последней игры для быстрого возврата в партию.</p>
 </section>
-
 <section class="card">
 <h2>&#128100; 7. Права пользователя и удаление данных</h2>
 <ul>
@@ -91,36 +84,32 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <li>Вопросы о данных: обратитесь к администратору тем же каналом, через который вы получили доступ к игре.</li>
 </ul>
 </section>
-
 <section class="card">
 <h2>&#128118; 8. Дети</h2>
 <p>Сервис <b>не предназначен для лиц младше 13 лет</b>. Проверка возраста не проводится; ответственность за соблюдение ограничения лежит на пользователе или его законном представителе.</p>
 </section>
-
 <section class="card">
 <h2>&#128260; 9. Изменения политики</h2>
 <p>Новая редакция публикуется на этой странице с указанием версии и даты. Продолжение использования Сервиса после публикации означает согласие с новой редакцией.</p>
 </section>
-
 <footer>
 <p>&#169; Ni.Coder &amp; Qwen, 2026. Бесплатный некоммерческий проект.</p>
 <p>Версия 1.0 от 28.10.2026</p>
 </footer>
 </main>
-
 <div id="boss-overlay"></div>
 <script>
 (function(){
-  var boss = false;
-  document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape') {
-      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-      e.preventDefault();
-      boss = !boss;
-      var o = document.getElementById('boss-overlay');
-      if (o) o.style.display = boss ? 'block' : 'none';
-    }
-  });
+var boss = false;
+document.addEventListener('keydown', function(e){
+if (e.key === 'Escape') {
+if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+e.preventDefault();
+boss = !boss;
+var o = document.getElementById('boss-overlay');
+if (o) o.style.display = boss ? 'block' : 'none';
+}
+});
 })();
 </script>
 </body>

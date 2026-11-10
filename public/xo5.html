@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>5 в ряд - Бесконечное поле</title>
+<meta name="description" content="XO5Line — онлайн-игра 5 в ряд на бесконечном поле. Играйте с друзьями или с ботом (4 уровня сложности).">
+<title>XO5Line — 5 в ряд на бесконечном поле</title>
 <!-- Favicon -->
 <link rel="icon" href="favicon.ico" type="image/x-icon">
 <!-- v2.0.7: верхняя панель одним блоком .top-bar:
@@ -16,30 +17,6 @@
 </head>
 <body>
 <div class="join-notification" id="join-notification"></div>
-<div class="debug-indicator" id="debug-indicator">&#128295; Отладка</div>
-<div class="debug-overlay" id="debug-overlay">
-<div class="debug-panel">
-<h2>&#128295; Режим отладки</h2>
-<div class="debug-option" data-checkbox="dbg-timer">
-<label>&#9201;&#65039; Таймер хода выключен</label>
-<div class="debug-switch">
-<input type="checkbox" id="dbg-timer" onchange="applyDebugSettings()">
-<span class="debug-slider"></span>
-</div>
-</div>
-<div class="debug-option" data-checkbox="dbg-reveal">
-<label>&#128065;&#65039; Показать всё поле</label>
-<div class="debug-switch">
-<input type="checkbox" id="dbg-reveal" onchange="applyDebugSettings()">
-<span class="debug-slider"></span>
-</div>
-</div>
-<button class="debug-reset-btn" onclick="resetDebugSettings()">&#128260; Сброс всех режимов</button>
-<button class="debug-close-btn" onclick="closeDebugPanel()">Закрыть окно (режимы сохранятся)</button>
-<div class="debug-hint">«Сброс» — выключить все режимы</div>
-<div class="debug-versions-line" id="debug-versions-line"></div>
-</div>
-</div>
 <div class="result-overlay" id="result-overlay">
 <div class="result-modal">
 <div class="result-message" id="result-message"></div>
@@ -283,6 +260,32 @@
 </div>
 </div>
 <div id="boss-overlay"></div>
+<!-- v2.1.1: debug-блоки перенесены в конец body, чтобы парсеры мессенджеров
+не захватывали их текст для превью ссылки -->
+<div class="debug-indicator" id="debug-indicator" aria-hidden="true">&#128295; Отладка</div>
+<div class="debug-overlay" id="debug-overlay" aria-hidden="true">
+<div class="debug-panel">
+<h2>&#128295; Режим отладки</h2>
+<div class="debug-option" data-checkbox="dbg-timer">
+<label>&#9201;&#65039; Таймер хода выключен</label>
+<div class="debug-switch">
+<input type="checkbox" id="dbg-timer" onchange="applyDebugSettings()">
+<span class="debug-slider"></span>
+</div>
+</div>
+<div class="debug-option" data-checkbox="dbg-reveal">
+<label>&#128065;&#65039; Показать всё поле</label>
+<div class="debug-switch">
+<input type="checkbox" id="dbg-reveal" onchange="applyDebugSettings()">
+<span class="debug-slider"></span>
+</div>
+</div>
+<button class="debug-reset-btn" onclick="resetDebugSettings()">&#128260; Сброс всех режимов</button>
+<button class="debug-close-btn" onclick="closeDebugPanel()">Закрыть окно (режимы сохранятся)</button>
+<div class="debug-hint">«Сброс» — выключить все режимы</div>
+<div class="debug-versions-line" id="debug-versions-line"></div>
+</div>
+</div>
 <script type="module">
 import { VERSION } from './xo5-constants.js';
 import './xo5-ui.js';

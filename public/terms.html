@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>5 в ряд — Пользовательское соглашение</title>
+<meta name="description" content="Пользовательское соглашение проекта XO5Line: правила поведения, санкции, права администратора, отказ от гарантий.">
+<title>Пользовательское соглашение — XO5Line</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;font:16px/1.6 "Segoe UI",Tahoma,sans-serif;color:#333;
@@ -33,18 +34,15 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <body>
 <main class="wrap">
 <a class="back" href="index.html">&#8592; К визитке</a>
-
 <header>
 <h1>5 в ряд — Пользовательское соглашение</h1>
 <p class="authors">Ni.Coder &amp; Qwen</p>
 <p class="gamever">v2.0.5</p>
 </header>
-
 <section class="card">
 <h2>&#128220; 1. Предмет</h2>
 <p>Бесплатная веб-игра «5 в ряд» на бесконечном поле. Сервис предоставляется «как есть», без гарантий, для личного некоммерческого использования.</p>
 </section>
-
 <section class="card">
 <h2>&#128100; 2. Аккаунт</h2>
 <p>Регистрация означает полное согласие с настоящим соглашением и политикой конфиденциальности.</p>
@@ -55,7 +53,6 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <li>Одновременный вход разрешён только из одного браузера: вторая сессия отклоняется до завершения первой.</li>
 </ul>
 </section>
-
 <section class="card">
 <h2>&#128203; 3. Правила поведения</h2>
 <p><b>Запрещается:</b></p>
@@ -67,7 +64,6 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <li>Спам и реклама.</li>
 </ul>
 </section>
-
 <section class="card">
 <h2>&#9878;&#65039; 4. Санкции и автоматическая очистка</h2>
 <p><b>Администратор вправе заблокировать аккаунт (бан);</b> бан блокирует вход и завершает активные игры без результата.</p>
@@ -77,7 +73,6 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <li>Пороги очистки изменяются администратором в настройках админ-панели; текущие значения видны на табе «Дворник».</li>
 </ul>
 </section>
-
 <section class="card">
 <h2>&#128737;&#65039; 5. Права администратора</h2>
 <p>Администратор вправе:</p>
@@ -91,20 +86,17 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 </ul>
 <p>Каждое действие администратора фиксируется в журнале.</p>
 </section>
-
 <section class="card">
 <h2>&#9888;&#65039; 6. Отказ от гарантий и ограничение ответственности</h2>
 <p>Сервис предоставляется бесплатно и «как есть». Авторы не гарантируют бесперебойную работу, сохранность данных и пригодность для конкретной цели.</p>
 <p>Авторы не отвечают за потерю игровых данных при тестировании, переносах проекта и очистках, описанных в разделе 4.</p>
 <p>Спорные ситуации между игроками решаются администратором на основе игровых данных и журнала действий.</p>
 </section>
-
 <section class="card">
 <h2>&#169;&#65039; 7. Интеллектуальная собственность</h2>
 <p>Код, оформление и тексты проекта принадлежат авторам <b>Ni.Coder &amp; Qwen</b>.</p>
 <p>Копирование и распространение файлов игры допускаются только для личного некоммерческого использования с сохранением указания авторства.</p>
 </section>
-
 <section class="card">
 <h2>&#128260; 8. Изменение условий и прекращение</h2>
 <ul>
@@ -113,26 +105,24 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <li>Авторы вправе прекратить эксплуатацию Сервиса, разместив уведомление на главной странице.</li>
 </ul>
 </section>
-
 <footer>
 <p>&#169; Ni.Coder &amp; Qwen, 2026. Бесплатный некоммерческий проект.</p>
 <p>Версия 1.0 от 28.10.2026</p>
 </footer>
 </main>
-
 <div id="boss-overlay"></div>
 <script>
 (function(){
-  var boss = false;
-  document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape') {
-      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-      e.preventDefault();
-      boss = !boss;
-      var o = document.getElementById('boss-overlay');
-      if (o) o.style.display = boss ? 'block' : 'none';
-    }
-  });
+var boss = false;
+document.addEventListener('keydown', function(e){
+if (e.key === 'Escape') {
+if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+e.preventDefault();
+boss = !boss;
+var o = document.getElementById('boss-overlay');
+if (o) o.style.display = boss ? 'block' : 'none';
+}
+});
 })();
 </script>
 </body>
