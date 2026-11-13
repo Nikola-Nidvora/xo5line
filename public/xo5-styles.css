@@ -1,7 +1,7 @@
 /* ============================================================
 XO5 — 5 в ряд · Стили игры
 v2.1.2 (релиз «тёмная тема»)
-MODULE_VERSION = 1.0.10.
+MODULE_VERSION = 1.0.12.
 Метод: база 1.0.5 (рабочая, GitHub) БЕЗ ИЗМЕНЕНИЙ + аддитивный
 хвост в конце файла (переменные тёмной темы, новые сущности,
 тёмные переопределения с префиксом html[data-theme="dark"]).
@@ -10,11 +10,18 @@ MODULE_VERSION = 1.0.10.
 debug-панели перекрашивались общим тёмным правилом).
 1.0.10: добавлены .container{z-index:2}, зеркала debug-кнопок,
 #bot-game-btn !important, placeholder, маркер целостности файла.
+1.0.11: U1 — инверсия подложек служебных кнопок в тёмной теме;
+U2 — медиа-заплаты компактности (сняты в 1.0.12 как недостаточные).
+1.0.12: FLUID-МОДЕЛЬ (одобрена превью preview-fluid-layout):
+окно приложения = окно браузера на любом устройстве; контент-
+колонка 760px для входа/лобби; игра — во всю ширину; безопасные
+зоны iOS через env(safe-area-inset-*); меню шестерёнки никогда
+не обрезается; узкие экраны: переносы вместо обрезки.
 ============================================================ */
 /* ---------- Версия модуля (для реестра) ----------
 CSS-файлы не регистрируются в window.XO5_VERSIONS напрямую,
 но версия документируется в комментарии и в базе знаний.
-MODULE_VERSION = 1.0.10 */
+MODULE_VERSION = 1.0.12 */
 /* ---------- Reset & base ---------- */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -958,14 +965,12 @@ animation: pulse-thinking 1.5s ease-in-out infinite;
 0%, 100% { opacity: 0.9; }
 50% { opacity: 1; }
 }
-
 /* ============================================================
 ↓↓↓ ДОБАВОЧНЫЙ ХВОСТ v2.1.2 (ТЁМАЯ ТЕМА) ↓↓↓
 Ни одно правило базы выше не изменено. Тёмные переопределения
 идут с префиксом html[data-theme="dark"] — специфичность выше,
 каскад побеждает. Светлая тема = база 1.0.5 без отличий.
 ============================================================ */
-
 /* ---------- 41.1 Переменные тёмной палитры ---------- */
 [data-theme="dark"] {
 color-scheme: dark;
@@ -992,7 +997,6 @@ color-scheme: dark;
 --d-room-border: #5a5a8a;
 --d-progress: #2a3158;
 }
-
 /* ---------- 41.2 Новые сущности фона страницы ---------- */
 /* div'ы .stars-bg и .grid-overlay стоят в xo5.html v2.0.8 сразу после <body> */
 .stars-bg {
@@ -1052,15 +1056,12 @@ linear-gradient(90deg, rgba(120,140,200,0.06) 1px, transparent 1px);
 .settings-menu-item.theme-toggle:hover { background: #5568d3; }
 html[data-theme="dark"] .settings-menu-item.theme-toggle { background: var(--d-brand); }
 html[data-theme="dark"] .settings-menu-item.theme-toggle:hover { background: var(--d-brand-h); }
-
 /* ---------- 41.3 Исправление 1.0.10: карточка выше фоновых слоёв ---------- */
 .container { z-index: 2; }
-
 /* ---------- 41.4 База: body, контейнер, типографика ---------- */
 html[data-theme="dark"] body { background: var(--d-body); color: var(--d-text); }
 html[data-theme="dark"] .container { background: var(--d-card); }
 html[data-theme="dark"] h1, html[data-theme="dark"] h2 { color: var(--d-brand); }
-
 /* ---------- 41.5 Кнопки и поля ввода ---------- */
 html[data-theme="dark"] button { background: var(--d-brand); color: #fff; }
 html[data-theme="dark"] button:hover { background: var(--d-brand-h); }
@@ -1075,7 +1076,6 @@ html[data-theme="dark"] button.tool-btn.busy { color: rgba(232,232,240,0.4); }
 html[data-theme="dark"] input { background: var(--d-input); color: var(--d-text); border-color: var(--d-border); }
 html[data-theme="dark"] input:focus { border-color: var(--d-brand); }
 html[data-theme="dark"] input::placeholder { color: var(--d-muted); }
-
 /* ---------- 41.6 Авторизация ---------- */
 html[data-theme="dark"] .auth-bar { background: var(--d-sec); }
 html[data-theme="dark"] .auth-bar-title { color: var(--d-brand); }
@@ -1085,7 +1085,6 @@ html[data-theme="dark"] .eye-btn { color: var(--d-muted); }
 html[data-theme="dark"] .eye-btn:hover { background: var(--d-sec); }
 html[data-theme="dark"] .consent-text { color: var(--d-text2); }
 html[data-theme="dark"] .consent-text a { color: var(--d-brand); }
-
 /* ---------- 41.7 Верхняя панель, монета, FS-символ ---------- */
 html[data-theme="dark"] .connection-dot { background: var(--d-muted); }
 html[data-theme="dark"] .connection-dot.online { background: var(--d-success); }
@@ -1107,7 +1106,6 @@ html[data-theme="dark"] .settings-menu-item.danger:hover { background: rgba(255,
 html[data-theme="dark"] .logo-x { color: var(--d-brand); }
 html[data-theme="dark"] .logo-o { color: var(--d-alt); }
 html[data-theme="dark"] .turn-strip-party { color: var(--d-text2); }
-
 /* ---------- 41.8 Лобби ---------- */
 html[data-theme="dark"] .user-info { background: var(--d-sec); color: var(--d-text); }
 html[data-theme="dark"] .user-stats { color: var(--d-text2); }
@@ -1131,7 +1129,6 @@ html[data-theme="dark"] .lobby-countdown { color: var(--d-warning); }
 html[data-theme="dark"] .lobby-empty { color: var(--d-muted); }
 html[data-theme="dark"] #bot-game-btn { background: var(--d-bot) !important; }
 html[data-theme="dark"] #bot-game-btn:hover { background: #d99ae6 !important; }
-
 /* ---------- 41.9 Игровое окно: шапка, комната, таймеры, баннеры ---------- */
 html[data-theme="dark"] .game-header { background: var(--d-sec); }
 html[data-theme="dark"] .game-header .player-symbol.symbol-x { color: var(--d-brand); }
@@ -1177,7 +1174,6 @@ html[data-theme="dark"] #nudge-btn:hover { background: #d99ae6; }
 html[data-theme="dark"] .join-notification { background: var(--d-success); color: #1e2440; }
 html[data-theme="dark"] .join-notification.nudge { background: var(--d-warning); }
 html[data-theme="dark"] .join-notification.sleep-warning { background: var(--d-warning); }
-
 /* ---------- 41.10 Модалки, справка, бан, удаление ---------- */
 html[data-theme="dark"] .result-modal,
 html[data-theme="dark"] .confirm-modal,
@@ -1202,7 +1198,6 @@ html[data-theme="dark"] .delete-account-modal .modal-hint { color: var(--d-muted
 html[data-theme="dark"] .help-modal h3 { color: var(--d-brand); }
 html[data-theme="dark"] .help-text p { color: var(--d-text2); }
 html[data-theme="dark"] .help-text a { color: var(--d-brand); }
-
 /* ---------- 41.11 Бот-модалки ---------- */
 html[data-theme="dark"] .bot-persona-btn,
 html[data-theme="dark"] .bot-side-btn {
@@ -1215,19 +1210,102 @@ html[data-theme="dark"] .bot-side-btn.sel { background: #1e3a5f; border-color: v
 html[data-theme="dark"] .bot-persona-btn.locked { background: #232842; color: var(--d-muted); }
 html[data-theme="dark"] .bot-persona-btn.locked .bot-score { color: var(--d-muted); }
 html[data-theme="dark"] .bot-score { color: var(--d-success); }
-
 /* ---------- 41.12 Исправление 1.0.10: кнопки debug-панели (уже тёмные) ---------- */
 html[data-theme="dark"] .debug-reset-btn { background: #f38ba8; color: #1e1e2e; }
 html[data-theme="dark"] .debug-reset-btn:hover { background: #eba0ac; }
 html[data-theme="dark"] .debug-close-btn { background: #45475a; color: #cdd6f4; }
 html[data-theme="dark"] .debug-close-btn:hover { background: #585b70; }
-
 /* ---------- 41.13 Футер версии ---------- */
 html[data-theme="dark"] .version { color: var(--d-muted); border-top-color: var(--d-border); }
-
+/* ---------- 41.14 (1.0.11) U1: служебные кнопки — тёмные в покое, светлые под нажатием ---------- */
+html[data-theme="dark"] .settings-btn,
+html[data-theme="dark"] .tool-btn,
+html[data-theme="dark"] .eye-btn { background: var(--d-sec); }
+html[data-theme="dark"] .settings-btn:hover,
+html[data-theme="dark"] .settings-btn:active,
+html[data-theme="dark"] .tool-btn:hover,
+html[data-theme="dark"] .tool-btn:active,
+html[data-theme="dark"] .eye-btn:hover,
+html[data-theme="dark"] .eye-btn:active { background: var(--d-brand); color: #1e2440; }
+/* ---------- 41.15 (1.0.12) FLUID: окно приложения = окно браузера ---------- */
+/* Контейнер растягивается на весь вьюпорт и следует за размером окна.
+Прозрачный фон: градиент (светлая) и звёзды (тёмная) становятся фоном
+самого окна, а не «полем вокруг карточки». */
+.container {
+width: 100%;
+max-width: none;
+min-height: 100vh;
+min-height: 100dvh;
+height: auto;
+max-height: none;
+margin: 0;
+border-radius: 0;
+box-shadow: none;
+background: transparent;
+padding: 48px 14px 14px;
+padding-top: calc(48px + env(safe-area-inset-top));
+padding-right: calc(14px + env(safe-area-inset-right));
+padding-bottom: calc(14px + env(safe-area-inset-bottom));
+padding-left: calc(14px + env(safe-area-inset-left));
+}
+html[data-theme="dark"] .container { background: transparent; }
+.container.compact-mode,
+.container.game-mode {
+width: 100%;
+max-width: none;
+height: auto;
+max-height: none;
+min-height: 100vh;
+min-height: 100dvh;
+}
+.container.compact-mode.lobby-min {
+min-width: 0;
+min-height: 100vh;
+min-height: 100dvh;
+}
+.container.fullscreen-mode {
+padding: 40px 6px 6px;
+padding-top: calc(40px + env(safe-area-inset-top));
+}
+/* Абсолютные элементы верхней зоны учитывают безопасные зоны iOS */
+.top-bar { top: calc(7px + env(safe-area-inset-top)); }
+.top-coin { top: calc(1px + env(safe-area-inset-top)); }
+/* Контент-колонка: читаемость на широких экранах (вход/лобби);
+игровое окно использует всю ширину */
+#auth-screen > *,
+#lobby-screen > * {
+width: 100%;
+max-width: 760px;
+margin-left: auto;
+margin-right: auto;
+}
+#auth-screen .scrollable,
+#lobby-screen .scrollable {
+display: flex;
+flex-direction: column;
+}
+/* Меню шестерёнки структурно не может быть обрезано */
+.settings-menu { max-width: calc(100vw - 24px); }
+/* Узкие экраны: переносы вместо обрезки, элементы остаются видимы */
+@media (max-width: 480px) {
+.controls-row { flex-wrap: wrap; }
+.controls-row button { flex: 1 1 30%; min-width: 84px; }
+.player-line { white-space: normal; }
+.user-stats { font-size: 11px; }
+.top-bar { gap: 6px; }
+.turn-indicator { font-size: 10px; padding: 3px 6px; }
+.game-header { padding: 6px 10px; gap: 8px; }
+.game-header .player-symbol { font-size: 28px; min-width: 32px; }
+.lobby-item { flex-wrap: wrap; gap: 6px; }
+}
+@media (max-width: 360px) {
+.controls-row button { flex: 1 1 46%; }
+.user-stats { font-size: 10px; }
+.turn-indicator { font-size: 9px; }
+}
 /* ============================================================
-КОНЕЦ ФАЙЛА xo5-styles.css · MODULE_VERSION = 1.0.10
+КОНЕЦ ФАЙЛА xo5-styles.css · MODULE_VERSION = 1.0.12
 Контроль целостности копии: последней строкой файла должен быть
-комментарий «КОНЕЦ ФАЙЛА xo5-styles.css · MODULE_VERSION = 1.0.10».
+комментарий «КОНЕЦ ФАЙЛА xo5-styles.css · MODULE_VERSION = 1.0.12».
 Если файл обрывается раньше — копия повреждена, не деплоить.
 ============================================================ */
