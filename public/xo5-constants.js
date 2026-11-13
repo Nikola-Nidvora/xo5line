@@ -1,19 +1,22 @@
 // ============================================================
 // XO5 · 5 в ряд · Модуль 2/8: константы и конфигурация
-// v2.1.1 (глобальная версия игры — точка истины)
+// v2.1.2 (глобальная версия игры — точка истины)
 // Чистый модуль: без DOM, без Firebase, без состояния партии.
 // v2.1.1: хотфикс — бот-кнопка «В лобби (отмена игры)» не должна
 // появляться в онлайн-партии (правки в xo5-ui.js 1.0.9);
 // повышение VERSION. Новых констант не добавлено.
+// v2.1.2: релиз «тёмная тема» — повышение VERSION и
+// MODULE_VERSION. Новых констант не добавлено: цвета тем живут
+// в xo5-styles.css 1.0.10 (хвост) и в палитрах xo5-core.js 1.0.2.
 // ============================================================
 // ---------- Версия и авторство ----------
-export const VERSION = '2.1.1';
+export const VERSION = '2.1.2';
 export const AUTHORS = 'Ni.Coder & Qwen';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.6';
+export const MODULE_VERSION = '1.0.7';
 if (typeof window !== 'undefined') {
- window.XO5_VERSIONS = window.XO5_VERSIONS || {};
- window.XO5_VERSIONS.constants = MODULE_VERSION;
+window.XO5_VERSIONS = window.XO5_VERSIONS || {};
+window.XO5_VERSIONS.constants = MODULE_VERSION;
 }
 // ---------- Таймауты партии и ходов (изменяются applyGameConfig) ----------
 export let TURN_WARNING_TIME = 15 * 60 * 1000;

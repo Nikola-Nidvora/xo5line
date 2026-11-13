@@ -5,17 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="XO5Line — онлайн-игра 5 в ряд на бесконечном поле. Играйте с друзьями или с ботом (4 уровня сложности).">
 <title>XO5Line — 5 в ряд на бесконечном поле</title>
-<!-- Favicon -->
-<link rel="icon" href="favicon.ico" type="image/x-icon">
+<!-- Favicon: v2.0.9 — единая png-иконка (favicon.png в корне хостинга) -->
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<!-- Цвет адресной строки: сплошной; светлая/тёмная ОС через media.
+Динамическую синхронизацию с темой игры добавит xo5-ui.js 1.0.11 -->
+<meta name="theme-color" content="#667eea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#35354f" media="(prefers-color-scheme: dark)">
 <!-- v2.0.7: верхняя панель одним блоком .top-bar:
 точка соединения → символ X/O (только fullscreen) → индикатор хода (по центру)
 → шестерёнка → fullscreen. Кнопки «Справка» и «Сон» переехали в меню шестерёнки
 (порядок: К визитке, Справка, Уснуть, Выйти, Удалить аккаунт).
 Удалены дубли индикатора хода: #turn-indicator (timer-section) и #turn-indicator-fs (turn-strip).
 Кнопки зума получили id для скрытия в touch-mode. -->
+<!-- v2.0.8 (релиз v2.1.2, тёмная тема):
+1) фоновые слои .stars-bg и .grid-overlay сразу после <body>
+(звёзды видны только при data-theme="dark"; сетка — в обеих темах, еле видимая);
+2) пункт меню #mi-theme ПЕРВЫМ в меню шестерёнки, БЕЗ onclick —
+обработчик, подпись и класс .theme-toggle ставит xo5-ui.js 1.0.10. -->
+<!-- v2.0.9: favicon.ico заменён на favicon.png; добавлены meta theme-color -->
 <link rel="stylesheet" href="xo5-styles.css">
 </head>
 <body>
+<div class="stars-bg" aria-hidden="true"></div>
+<div class="grid-overlay" aria-hidden="true"></div>
 <div class="join-notification" id="join-notification"></div>
 <div class="result-overlay" id="result-overlay">
 <div class="result-modal">
@@ -102,6 +117,7 @@
 <div class="settings-wrapper">
 <button class="settings-btn" id="tt-gear" onclick="toggleTopSettings(event)" title="Настройки">&#9881;&#65039;</button>
 <div class="settings-menu" id="top-settings-menu" style="display: none;">
+<button class="settings-menu-item" id="mi-theme" type="button">&#127769; Тёмная тема</button>
 <button class="settings-menu-item" id="mi-home" onclick="gotoHome()">&#127968; К визитке</button>
 <button class="settings-menu-item" id="mi-help" onclick="openHelpModal(); closeTopSettings();">&#10068; Справка</button>
 <button class="settings-menu-item" id="mi-sleep" onclick="enterSleepNow(); closeTopSettings();">&#128164; Уснуть</button>
