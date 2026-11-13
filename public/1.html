@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>XO5 — превью fluid-модели окна</title>
+<style>
+:root {
+ --bg-app: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+ --grid: rgba(102,126,234,0.15);
+ --panel: #ffffff;
+ --panel-sec: #f5f5f5;
+ --text: #333333;
+ --text2: #666666;
+ --muted: #999999;
+ --brand: #667eea;
+ --brand-alt: #764ba2;
+ --border: #e0e0e0;
+ --success: #4caf50;
+ --warning: #ff9800;
+ --bot: #ab47bc;
+ --canvas-bg: #fafafa;
+ --canvas-grid: #ececec;
+}
+[data-theme="dark"] {
+ --bg-app: #35354f;
+ --grid: rgba(120,140,200,0.06);
+ --panel: #1e2440;
+ --panel-sec: #2a3158;
+ --text: #e8e8f0;
+ --text2: #b0b0c0;
+ --muted: #808095;
+ --brand: #7b8ff5;
+ --brand-alt: #9d7bd6;
+ --border: #404060;
+ --success: #6fcf73;
+ --warning: #ffb74d;
+ --bot: #c77ddb;
+ --canvas-bg: #35354f;
+ --canvas-grid: #4e4e75;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+ font: 14px/1.5 "Segoe UI", Tahoma, sans-serif;
+ color: var(--text);
+ background: var(--bg-app);
+ background-attachment: fixed;
+ min-height: 100dvh;
+}
+/* звёзды (тёмная) */
+.stars { display: none; position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+[data-theme="dark"] .stars {
+ display: block;
+ background-image:
+ radial-gradient(1px 1px at 10% 20%, #fff 50%, transparent 51%),
+ radial-gradient(1px 1px at 30% 60%, #fff 50%, transparent 51%),
+ radial-gradient(1.5px 1.5px at 50% 10%, #fff 50%, transparent 51%),
+ radial-gradient(1px 1px at 70% 40%, #fff 50%, transparent 51%),
+ radial-gradient(1px 1px at 90% 80%, #fff 50%, transparent 51%),
+ radial-gradient(1.5px 1.5px at 15% 85%, #fff 50%, transparent 51%),
+ radial-gradient(1px 1px at 45% 45%, #fff 50%, transparent 51%),
+ radial-gradient(1px 1px at 80% 15%, #fff 50%, transparent 51%);
+}
+/* сетка фона */
+.gridov {
+ position: fixed; inset: 0; z-index: 1; pointer-events: none;
+ background-image:
+ linear-gradient(var(--grid) 1px, transparent 1px),
+ linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+ background-size: 40px 40px;
+}
+/* ОКНО ПРИЛОЖЕНИЯ = ОКНО БРАУЗЕРА */
+.frame {
+ position: relative; z-index: 2;
+ min-height: 100dvh;
+ display: flex; flex-direction: column;
+ padding:
+ calc(10px + env(safe-area-inset-top))
+ calc(14px + env(safe-area-inset-right))
+ calc(14px + env(safe-area-inset-bottom))
+ calc(14px + env(safe-area-inset-left));
+}
+/* контент-колонка: читамость на широких экранах, игра — во всю ширину */
+.col { width: 100%; max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; }
+.col.wide { max-width: none; }
+/* верхняя панель */
+.top-bar { display: flex; align-items: center; gap: 8px; min-height: 32px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+.chip { font-weight: 700; padding: 3px 9px; border-radius: 6px; font-size: 11px; background: var(--success); color: #fff; white-space: nowrap; }
+.chip.opp { background: var(--warning); }
+.tb-center { flex: 1; display: flex; justify-content: center; min-width: 0; }
+.settings-wrapper { position: relative; margin-left: auto; flex-shrink: 0; }
+.gear {
+ background: transparent; border: none; cursor: pointer;
+ font-size: 18px; color: var(--text2);
+ min-width: 28px; min-height: 28px; border-radius: 8px; padding: 4px 6px;
+}
+.gear:hover { background: var(--panel-sec); }
+.settings-menu {
+ display: none;
+ position: absolute; top: calc(100% + 6px); right: 0;
+ min-width: min(220px, calc(100vw - 24px));
+ background: var(--panel);
+ border: 1px solid var(--border);
+ border-radius: 12px; padding: 8px;
+ box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+ z-index: 10004;
+ flex-direction: column; gap: 6px;
+}
+.settings-menu.open { display: flex; }
+.settings-menu button {
+ width: 100%; padding: 10px 14px; border: none; border-radius: 8px;
+ background: var(--panel-sec); color: var(--text);
+ font-size: 14px; font-weight: 700; text-align: left; cursor: pointer;
+}
+.settings-menu button.tt { background: var(--brand); color: #fff; }
+.settings-menu button.danger { background: rgba(255,82,82,0.12); color: #ff5252; }
+/* панели */
+.panel { background: var(--panel); border-radius: 12px; padding: 12px; }
+.panel.sec { background: var(--panel-sec); }
+/* демо-переключатели превью */
+.demo-bar {
+ display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+ padding: 6px 0;
+}
+.demo-bar button {
+ border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.15);
+ color: #fff; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+ backdrop-filter: blur(6px);
+}
+.demo-bar button.active { background: var(--brand); border-color: var(--brand); }
+/* экраны демо */
+.screen { display: none; flex: 1; min-height: 0; flex-direction: column; gap: 10px; }
+.screen.active { display: flex; }
+/* лобби */
+.user-info { display: flex; align-items: center; font-weight: 700; }
+.stats { text-align: center; font-size: 12px; color: var(--text2); }
+.btn { width: 100%; padding: 12px; border: none; border-radius: 10px; background: var(--brand); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+.btn.bot { background: var(--bot); }
+.lobby-item { display: flex; justify-content: space-between; align-items: center; background: var(--panel-sec); border-radius: 10px; padding: 10px 12px; }
+.lobby-item .name { font-weight: 700; }
+.lobby-item .meta { font-size: 11px; color: var(--text2); }
+.lobby-item button { border: none; border-radius: 8px; background: var(--brand); color: #fff; padding: 6px 14px; font-weight: 600; cursor: pointer; }
+.lobby-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; min-height: 0; }
+/* игра */
+.game-header { display: flex; align-items: center; gap: 12px; }
+.sym { font-size: 32px; font-weight: 900; color: var(--brand); min-width: 36px; text-align: center; line-height: 1; }
+.sym.o { color: var(--brand-alt); }
+.canvas-box {
+ flex: 1; min-height: 220px;
+ background: var(--canvas-bg);
+ background-image:
+ linear-gradient(var(--canvas-grid) 1px, transparent 1px),
+ linear-gradient(90deg, var(--canvas-grid) 1px, transparent 1px);
+ background-size: 14px 14px;
+ border: 2px solid var(--brand); border-radius: 10px;
+ position: relative;
+}
+.canvas-box::after { content: '🎯'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 28px; }
+.controls { display: flex; gap: 6px; flex-wrap: wrap; }
+.controls button { flex: 1 1 90px; padding: 10px 6px; border: none; border-radius: 8px; background: var(--brand); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.controls button.sec { background: var(--panel-sec); color: var(--text); }
+.controls button.warn { background: var(--warning); }
+.version { text-align: center; font-size: 11px; color: var(--muted); padding-top: 8px; border-top: 1px solid var(--border); }
+.hint { text-align: center; font-size: 11px; color: #fff; opacity: 0.9; padding: 4px 0 0; text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+</style>
+</head>
+<body>
+<div class="stars"></div>
+<div class="gridov"></div>
+
+<div class="frame">
+ <div class="demo-bar">
+ <button id="b-auth" onclick="show('auth')">Вход</button>
+ <button id="b-lobby" class="active" onclick="show('lobby')">Лобби</button>
+ <button id="b-game" onclick="show('game')">Игра</button>
+ <button id="b-theme" onclick="toggleTheme()">🌙 Тёмная</button>
+ <button id="b-menu" onclick="toggleMenu()">⚙️ Меню</button>
+ </div>
+
+ <div class="top-bar">
+ <div class="dot"></div>
+ <div class="tb-center"><span class="chip" id="turn-chip">🎯 Ваш ход</span></div>
+ <div class="settings-wrapper">
+ <button class="gear" onclick="toggleMenu()">⚙️</button>
+ <div class="settings-menu" id="menu">
+ <button class="tt">🌙 Тёмная тема</button>
+ <button>🏠 К визитке</button>
+ <button>❔ Справка</button>
+ <button>💤 Уснуть</button>
+ <button>🚪 Выйти</button>
+ <button class="danger">🗑️ Удалить аккаунт</button>
+ </div>
+ </div>
+ </div>
+
+ <!-- ВХОД -->
+ <div class="col screen" id="s-auth">
+ <div class="panel sec" style="font-weight:700;color:var(--brand);">Вход / Регистрация</div>
+ <div class="panel"><input placeholder="Имя пользователя" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:10px;background:var(--panel);color:var(--text);font-size:15px;"></div>
+ <div class="panel"><input placeholder="Пароль" type="password" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:10px;background:var(--panel);color:var(--text);font-size:15px;"></div>
+ <button class="btn">Войти</button>
+ <button class="btn" style="background:var(--panel-sec);color:var(--text);">Зарегистрироваться</button>
+ <div class="version">v2.1.2 | Ni.Coder & Qwen</div>
+ </div>
+
+ <!-- ЛОББИ -->
+ <div class="col screen active" id="s-lobby">
+ <div class="panel user-info">👤 <span style="margin-left:6px;">biba</span></div>
+ <div class="stats">🏆 7 · 😔 2 · ⚪ 1 · X: 4 · O: 6</div>
+ <button class="btn bot">🤖 Игра с ботом</button>
+ <button class="btn">➕ Создать игру</button>
+ <div class="lobby-list">
+ <div class="lobby-item panel"><div><div class="name">🏠 biba-1</div><div class="meta">👤 biba (ваша игра) · ⚔️ Игра идёт</div></div><button>Войти</button></div>
+ <div class="lobby-item panel"><div><div class="name">🏠 lola-3</div><div class="meta">👤 lola · ⏳ Ожидание</div></div><button>Играть</button></div>
+ <div class="lobby-item panel"><div><div class="name">🏠 alex-2</div><div class="meta">👤 alex · ⚔️ Игра идёт · 👤 maria</div></div></div>
+ </div>
+ <div class="version">v2.1.2 | Ni.Coder & Qwen</div>
+ </div>
+
+ <!-- ИГРА -->
+ <div class="col wide screen" id="s-game">
+ <div class="panel game-header">
+ <div class="sym">X</div>
+ <div>
+ <div style="font-weight:700;">👤 biba</div>
+ <div style="font-size:12px;color:var(--text2);">🤖 Новичок</div>
+ </div>
+ </div>
+ <div class="canvas-box"></div>
+ <div class="controls">
+ <button class="warn">↩️ Отменить</button>
+ <button>🎯 Центр</button>
+ <button class="sec">🔍+</button>
+ <button class="sec">🔍−</button>
+ </div>
+ <div class="controls">
+ <button class="sec" style="flex:1 1 100%;">🏠 В лобби (отмена игры)</button>
+ </div>
+ <div class="version">v2.1.2 | Ni.Coder & Qwen</div>
+ </div>
+
+ <div class="hint">Тяните край окна браузера — всё следует синхронно. DevTools → device toolbar: 320 / 390 / 768 / 1440.</div>
+</div>
+
+<script>
+function show(id) {
+ document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+ document.getElementById('s-' + id).classList.add('active');
+ ['auth','lobby','game'].forEach(k => document.getElementById('b-' + k).classList.toggle('active', k === id));
+ const chip = document.getElementById('turn-chip');
+ if (id === 'game') { chip.style.display = ''; } else { chip.style.display = 'none'; }
+}
+function toggleTheme() {
+ const d = document.documentElement.getAttribute('data-theme') === 'dark';
+ if (d) document.documentElement.removeAttribute('data-theme');
+ else document.documentElement.setAttribute('data-theme', 'dark');
+ document.getElementById('b-theme').textContent = d ? '🌙 Тёмная' : '☀️ Светлая';
+}
+function toggleMenu() {
+ document.getElementById('menu').classList.toggle('open');
+}
+show('lobby');
+</script>
+</body>
+</html>
