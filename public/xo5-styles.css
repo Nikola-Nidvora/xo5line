@@ -1366,6 +1366,55 @@ font-size: 12px; font-weight: 900;
 html[data-theme="dark"] .theme-option { color: var(--d-text); }
 html[data-theme="dark"] .theme-option:hover { background: rgba(123,143,245,0.15); }
 html[data-theme="dark"] .theme-option.sel { background: var(--d-brand); color: #1e2440; }
+/* ---------- 41.19 (1.0.14) СВЕТЛАЯ тема: читаемость на градиенте (fluid-окно) ---------- */
+/* Строка достижений — белая «таблетка»: сохраняет цветные X/O, не броская */
+.user-stats {
+color: #444;
+background: rgba(255,255,255,0.92);
+border-radius: 10px;
+padding: 4px 12px;
+width: fit-content;
+margin: -4px auto 8px;
+box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+.user-stats .stat-num { color: #333; }
+/* Текстовые элементы на градиенте — белые с мягкой тенью */
+.lobby-empty { color: rgba(255,255,255,0.92); text-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+.version { color: rgba(255,255,255,0.85); border-top-color: rgba(255,255,255,0.35); text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+.lobby-group-title { color: #ffffff; border-bottom-color: rgba(255,255,255,0.35); text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+.lobby-timer { color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+.consent-text { color: rgba(255,255,255,0.92); text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+.consent-text a { color: #ffffff; }
+.turn-strip-party { color: rgba(255,255,255,0.9); text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+/* Комната — светлая панель поверх градиента */
+.room-header { background: rgba(255,255,255,0.92); border-color: rgba(0,0,0,0.08); }
+.room-header .room-name { color: #4a5fc1; }
+/* Тёмная тема: таблетку отменяем (там работают тени 41.17) */
+html[data-theme="dark"] .user-stats {
+background: transparent;
+box-shadow: none;
+padding: 0;
+width: auto;
+margin: -4px 0 8px 0;
+}
+/* ---------- 41.20 (1.0.14) Вертикаль: окно = видимая область браузера ---------- */
+/* Проценты html/body = текущая видимая высота у ВСЕХ движков (включая
+старые без dvh); overflow hidden — страница-приложение, скроллятся
+только внутренние области; dvh поверх — живая подстройка под
+динамическую адресную панель в современных браузерах */
+html { height: 100%; }
+body { height: 100%; min-height: 0; overflow: hidden; }
+.container,
+.container.compact-mode,
+.container.game-mode,
+.container.compact-mode.lobby-min,
+.container.fullscreen-mode {
+height: 100%;
+height: 100dvh;
+max-height: 100%;
+max-height: 100dvh;
+min-height: 0;
+}
 /* ============================================================
 КОНЕЦ ФАЙЛА xo5-styles.css · MODULE_VERSION = 1.0.13
 Контроль целостности копии: последней строкой файла должен быть
