@@ -26,6 +26,12 @@
 2) пункт меню #mi-theme ПЕРВЫМ в меню шестерёнки, БЕЗ onclick —
 обработчик, подпись и класс .theme-toggle ставит xo5-ui.js 1.0.10. -->
 <!-- v2.0.9: favicon.ico заменён на favicon.png; добавлены meta theme-color -->
+<!-- v2.1.0: 1) заголовок окна лобби <div class="screen-title">Лобби</div>
+(стиль 41.22 из xo5-styles.css 1.0.15: без подложки, контрастный);
+2) пункт темы превращён в блок .theme-block с выпадающим подменю
+#theme-submenu (🌙 тёмная / 🌞 светлая / 🌫 системная) — стили 41.18,
+логика придёт с xo5-ui.js 1.0.12; до него клик по #mi-theme работает
+как прежний переключатель (ui 1.0.11). -->
 <link rel="stylesheet" href="xo5-styles.css">
 </head>
 <body>
@@ -117,7 +123,14 @@
 <div class="settings-wrapper">
 <button class="settings-btn" id="tt-gear" onclick="toggleTopSettings(event)" title="Настройки">&#9881;&#65039;</button>
 <div class="settings-menu" id="top-settings-menu" style="display: none;">
-<button class="settings-menu-item" id="mi-theme" type="button">&#127769; Тёмная тема</button>
+<div class="theme-block">
+<button class="settings-menu-item theme-toggle" id="mi-theme" type="button">&#127769; Тёмная тема</button>
+<div class="theme-submenu" id="theme-submenu">
+<button class="theme-option" data-theme-choice="dark" type="button">&#127769; Тёмная тема</button>
+<button class="theme-option" data-theme-choice="light" type="button">&#127774; Светлая тема</button>
+<button class="theme-option" data-theme-choice="system" type="button">&#127787;&#65039; Системная тема</button>
+</div>
+</div>
 <button class="settings-menu-item" id="mi-home" onclick="gotoHome()">&#127968; К визитке</button>
 <button class="settings-menu-item" id="mi-help" onclick="openHelpModal(); closeTopSettings();">&#10068; Справка</button>
 <button class="settings-menu-item" id="mi-sleep" onclick="enterSleepNow(); closeTopSettings();">&#128164; Уснуть</button>
@@ -159,6 +172,7 @@
 <div class="version" id="version-display"></div>
 </div>
 <div id="lobby-screen" class="screen">
+<div class="screen-title">Лобби</div>
 <div class="user-info">
 <span class="user-name">&#128100; <strong id="user-display"></strong></span>
 </div>
