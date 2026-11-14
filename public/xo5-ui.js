@@ -5,14 +5,16 @@
 // v2.1.1: #bot-lobby-btn принудительно скрывается вне бот-режима
 // (syncDynamicRow, resetGameDom); защиты в botToLobby/botPlayAgain от
 // броска активной онлайн-партии через устаревший оверлей бота.
-// v2.1.2: ДОБАВЛЕНО — секция темы (setTheme/applyTheme/toggleThemeFromMenu),
-// хранение предпочтения в localStorage ('xo5-theme'), по умолчанию system
-// (prefers-color-scheme), пункт меню #mi-theme с динамической подписью.
-// 1.0.11: ДОБАВЛЕНО — синхронизация meta theme-color с темой игры:
-// адресная строка мобильного браузера следует за переключателем темы,
-// а не только за темой ОС (syncThemeColorMeta вызывается из applyTheme).
-// База 1.0.10 не изменена: только новые константы/функция и одна строка
-// в applyTheme().
+// v2.1.2: ДОБАВЛЕНО — секция темы (setTheme/applyTheme), хранение
+// предпочтения в localStorage ('xo5-theme'), пункт меню #mi-theme.
+// 1.0.11: синхронизация meta theme-color с темой игры (syncThemeColorMeta).
+// 1.0.12: подменю выбора темы (🌙 тёмная / 🌞 светлая / 🌫 системная) —
+// разметка xo5.html v2.1.0; тёмная тема стала стартовой по умолчанию
+// (system остаётся полноценным выбором); флаг xo5-returning для
+// редиректа «своих» игроков с визитки сразу в игру (index.html v2.1.4).
+// База 1.0.9 не изменена, кроме двух документированных строк:
+// markReturningUser() в showScreen (ветка лобби) и clearReturningUser()
+// в успешном удалении аккаунта.
 // ============================================================
 import { doc, deleteDoc, getDoc, getDocs, updateDoc, setDoc, collection } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
@@ -30,7 +32,7 @@ import * as core from './xo5-core.js';
 import * as online from './xo5-online.js';
 import * as bot from './xo5-bot.js';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.11';
+export const MODULE_VERSION = '1.0.12';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.ui = MODULE_VERSION;
@@ -152,23 +154,26 @@ if (!mc) return;
 mc.classList.toggle('bot-mode', bot.isBotMode());
 mc.classList.toggle('touch-mode', core.getTouchMode());
 }
-// ---------- ТЕМА (v2.1.2, ДОБАВЛЕНО) ----------
-// Предпочтение: 'light' | 'dark' | 'system' (по умолчанию system).
-// Хранение: localStorage['xo5-theme']. Применение: атрибут data-theme
-// на <html>; канвас читает его сам каждый кадр (xo5-core.js 1.0.2),
-// стили — каскадом префиксов html[data-theme="dark"] (xo5-styles.css 1.0.10).
+// ---------- ТЕМА (v2.1.2; 1.0.12: подменю выбора и старт с тёмной) ----------
+// Предпочтение: 'light' | 'dark' | 'system'. Хранение: localStorage['xo5-theme'].
+// 1.0.12: при отсутствии сохранённого выбора стартуем с тёмной темы;
+// системная тема остаётся полноценным пунктом подменю.
+// Применение: атрибут data-theme на <html>; канвас читает его каждый кадр
+// (xo5-core.js 1.0.2); стили — каскадом html[data-theme="dark"] (styles 1.0.15).
 const THEME_STORAGE_KEY = 'xo5-theme';
 // 1.0.11: фирменные сплошные цвета адресной строки
 const THEME_COLOR_LIGHT = '#667eea';
 const THEME_COLOR_DARK = '#35354f';
-let themePref = 'system';
+// 1.0.12: подписи предпочтений для пункта меню
+const THEME_LABELS = { dark: 'тёмная', light: 'светлая', system: 'системная' };
+let themePref = 'dark';
 let themeMediaQuery = null;
 function readThemePref() {
 try {
 const v = localStorage.getItem(THEME_STORAGE_KEY);
 if (v === 'light' || v === 'dark' || v === 'system') return v;
 } catch (e) {}
-return 'system';
+return 'dark'; // 1.0.12: тёмная — стартовая тема
 }
 function resolveTheme(pref) {
 if (pref === 'light') return 'light';
@@ -180,9 +185,7 @@ return 'light';
 }
 export function getThemePref() { return themePref; }
 export function getThemeResolved() { return resolveTheme(themePref); }
-// 1.0.11: адресная строка следует за темой игры. Обновляем content у ВСЕХ
-// meta[name="theme-color"] (в html их две, с media light/dark — после
-// синхронизации media не важен, обе несут цвет текущей темы игры).
+// 1.0.11: адресная строка следует за темой игры
 function syncThemeColorMeta() {
 const color = resolveTheme(themePref) === 'dark' ? THEME_COLOR_DARK : THEME_COLOR_LIGHT;
 document.querySelectorAll('meta[name="theme-color"]').forEach(m => { m.setAttribute('content', color); });
@@ -191,13 +194,29 @@ export function applyTheme() {
 const resolved = resolveTheme(themePref);
 document.documentElement.setAttribute('data-theme', resolved);
 updateThemeMenuItem();
-syncThemeColorMeta(); // 1.0.11
+syncThemeColorMeta();
 }
 export function setTheme(pref) {
 themePref = (pref === 'light' || pref === 'dark' || pref === 'system') ? pref : 'system';
 try { localStorage.setItem(THEME_STORAGE_KEY, themePref); } catch (e) {}
 applyTheme();
 }
+// ---------- 1.0.12: подменю выбора темы ----------
+function themeSubmenuEl() { return document.getElementById('theme-submenu'); }
+function openThemeSubmenu() {
+const sub = themeSubmenuEl();
+if (sub) sub.classList.add('open');
+}
+function closeThemeSubmenu() {
+const sub = themeSubmenuEl();
+if (sub) sub.classList.remove('open');
+}
+window.toggleThemeSubmenu = function() {
+const sub = themeSubmenuEl();
+if (!sub) { window.toggleThemeFromMenu(); return; } // fallback: разметка без подменю
+sub.classList.toggle('open');
+};
+// совместимость с прежней кнопкой-переключателем
 window.toggleThemeFromMenu = function() {
 setTheme(getThemeResolved() === 'dark' ? 'light' : 'dark');
 };
@@ -205,9 +224,14 @@ function updateThemeMenuItem() {
 const mi = document.getElementById('mi-theme');
 if (!mi) return;
 if (!mi.classList.contains('theme-toggle')) mi.classList.add('theme-toggle');
-const resolved = resolveTheme(themePref);
-mi.textContent = resolved === 'dark' ? '\u2600\uFE0F Светлая тема' : '\u{1F319} Тёмная тема';
-mi.title = resolved === 'dark' ? 'Переключить на светлую тему' : 'Переключить на тёмную тему';
+mi.textContent = '\u{1F317} Тема: ' + (THEME_LABELS[themePref] || themePref) + ' \u25BE';
+mi.title = 'Выбрать тему оформления';
+const sub = themeSubmenuEl();
+if (sub) {
+sub.querySelectorAll('.theme-option').forEach(btn => {
+btn.classList.toggle('sel', btn.getAttribute('data-theme-choice') === themePref);
+});
+}
 }
 function initTheme() {
 themePref = readThemePref();
@@ -220,10 +244,35 @@ else if (themeMediaQuery.addListener) themeMediaQuery.addListener(onChange);
 }
 } catch (e) { themeMediaQuery = null; }
 applyTheme();
+// 1.0.12: клик по пункту темы раскрывает/сворачивает подменю;
+// stopPropagation — чтобы документ-слушатель не закрыл всё меню шестерёнки
 const mi = document.getElementById('mi-theme');
-if (mi) mi.addEventListener('click', () => { window.toggleThemeFromMenu(); });
+if (mi) mi.addEventListener('click', (e) => {
+e.stopPropagation();
+window.toggleThemeSubmenu();
+});
+const sub = themeSubmenuEl();
+if (sub) {
+sub.querySelectorAll('.theme-option').forEach(btn => {
+btn.addEventListener('click', (e) => {
+e.stopPropagation();
+setTheme(btn.getAttribute('data-theme-choice'));
+closeThemeSubmenu();
+});
+});
+}
 }
 initTheme();
+// ---------- 1.0.12: флаг возвращающегося игрока (для редиректа с визитки) ----------
+// Ставится при первом входе в лобби с активной сессией; читается index.html
+// (инлайн-скрипт до отрисовки) для перенаправления «своих» сразу в игру.
+const RETURNING_KEY = 'xo5-returning';
+export function markReturningUser() {
+try { localStorage.setItem(RETURNING_KEY, '1'); } catch (e) {}
+}
+export function clearReturningUser() {
+try { localStorage.removeItem(RETURNING_KEY); } catch (e) {}
+}
 // ---------- уведомления сверху ----------
 export function clearTopNotification() {
 const notif = document.getElementById('join-notification');
@@ -676,6 +725,7 @@ if (u) u.focus();
 }, 50);
 }
 if (id === 'lobby-screen') {
+markReturningUser(); // 1.0.12: флаг «игрок зарегистрирован в этом браузере»
 lobbyPausedByVisibility = false;
 online.listenToAvailableGames();
 startLobbyCleanup();
@@ -1499,6 +1549,7 @@ online.cleanupGame();
 resetGameDom();
 const authDeleted = await online.deleteAccountTransactions();
 accountDeletionInProgress = false;
+clearReturningUser(); // 1.0.12: удалённый аккаунт больше не «свой» для визитки
 window.closeDeleteAccountModal();
 showScreen('auth-screen');
 if (authDeleted) showMessage('auth-success', '\u2705 Аккаунт полностью удалён. Вход больше невозможен.');
@@ -1718,6 +1769,10 @@ get botMode() { return bot.isBotMode(); },
 get botStats() { return bot.getBotStats(); },
 // v2.1.2: текущая тема (предпочтение и разрешённое значение)
 get theme() { return { pref: themePref, resolved: resolveTheme(themePref) }; },
+// 1.0.12: флаг возвращающегося игрока (для редиректа с визитки)
+get returningFlag() {
+try { return localStorage.getItem('xo5-returning'); } catch (e) { return null; }
+},
 get savedData() {
 return {
 activeGameId: online.getSavedActiveGameId(),
@@ -1896,7 +1951,7 @@ console.log('Статистика бота сброшена');
 },
 help() {
 console.log('%c=== Отладка 5 в ряд v' + VERSION + ' ===', 'color: #667eea; font-weight: bold;');
-console.log('Свойства: gameState, camera, hoverCell, centerCell, touchCell, aimCell, aimMode, aimDebug, touchMode, fullscreenMode, bossMode, sleepMode, botMode, botStats, theme, optimisticMove, undoInfo, activity, savedData, lobbyConfig и др.');
+console.log('Свойства: gameState, camera, hoverCell, centerCell, touchCell, aimCell, aimMode, aimDebug, touchMode, fullscreenMode, bossMode, sleepMode, botMode, botStats, theme, returningFlag, optimisticMove, undoInfo, activity, savedData, lobbyConfig и др.');
 console.log('Команды:');
 console.log('  debug.versions()         - версии игры и всех модулей');
 console.log('  debug.theme              - текущая тема (pref и resolved)');
