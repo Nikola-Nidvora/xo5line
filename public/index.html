@@ -6,11 +6,13 @@
 <meta name="description" content="XO5Line — бесплатная онлайн-игра 5 в ряд на бесконечном поле. Играйте с друзьями или с ботом (4 уровня сложности). Регистрация за 30 секунд.">
 <title>XO5Line — онлайн 5 в ряд с ботом</title>
 <!-- Favicon: v2.1.2 — единая png-иконка (favicon.png в корне хостинга) -->
-<!-- Favicon: набор иконок + цвет адресной строки (v2.1.2) -->
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<!-- Цвет адресной строки: сплошной (градиент стандартом не поддерживается);
+светлая/тёмная ОС через media. Динамическую синхронизацию с темой игры
+добавит xo5-ui.js 1.0.11 -->
 <meta name="theme-color" content="#667eea" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#35354f" media="(prefers-color-scheme: dark)">
 <!-- v2.1.1: синхронизация gamever с VERSION из xo5-constants.js (1.0.6);
@@ -18,6 +20,9 @@
 <!-- v2.1.2: gamever 2.1.2; набор иконок и theme-color.
 Правка головы: favicon.ico заменён на favicon.png; необязательные
 svg/32x32/apple-touch строки убраны до загрузки файлов -->
+<!-- v2.1.3: gamever 2.1.3 синхронизирован с xo5-constants.js 2.1.3
+(INITIAL_GRID_SIZE 10 → 9, поле 9×9, центр (0,0)); компактные окна
+≤420px, комната внутри плашки таймеров, плашки-предупреждения fixed. -->
 <style>
 *{box-sizing:border-box}
 body{margin:0;font:16px/1.6 "Segoe UI",Tahoma,sans-serif;color:#333;
@@ -50,7 +55,7 @@ footer{text-align:center;color:#fff;opacity:.85;margin:18px 0 6px;font-size:13px
 <header>
 <h1>5 в ряд — Бесконечное поле</h1>
 <p class="authors">Ni.Coder &amp; Qwen</p>
-<p class="gamever">v2.1.2</p>
+<p class="gamever">v2.1.3</p>
 </header>
 <section class="card">
 <h2>Визитка</h2>

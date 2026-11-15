@@ -26,12 +26,17 @@
 2) пункт меню #mi-theme ПЕРВЫМ в меню шестерёнки, БЕЗ onclick —
 обработчик, подпись и класс .theme-toggle ставит xo5-ui.js 1.0.10. -->
 <!-- v2.0.9: favicon.ico заменён на favicon.png; добавлены meta theme-color -->
-<!-- v2.1.0: 1) заголовок окна лобби <div class="screen-title">Лобби</div>
-(стиль 41.22 из xo5-styles.css 1.0.15: без подложки, контрастный);
-2) пункт темы превращён в блок .theme-block с выпадающим подменю
-#theme-submenu (🌙 тёмная / 🌞 светлая / 🌫 системная) — стили 41.18,
-логика придёт с xo5-ui.js 1.0.12; до него клик по #mi-theme работает
-как прежний переключатель (ui 1.0.11). -->
+<!-- v2.1.0: ТРИ изменения разметки (стили уже в xo5-styles.css 1.0.21,
+логика уже в xo5-ui.js 1.0.12 / xo5-online.js 1.0.4):
+1) Комната убрана из отдельной плашки .room-header и переехала ВНУТРЬ
+плашки таймеров: обёртка .timer-rows + центрированный .room-inline
+(контракт стилей 41.35); id="room-name-text" сохранён — updateRoomHeader()
+из xo5-online.js находит его на новом месте без правок JS;
+2) Заголовок окна лобби .screen-title («Лобби») первым элементом
+#lobby-screen (контракт стилей 41.22);
+3) Подменю выбора темы: .theme-block оборачивает #mi-theme и
+#theme-submenu с тремя .theme-option (data-theme-choice: dark/light/system);
+обработчики навешивает xo5-ui.js 1.0.12. Эмодзи — только сущностями. -->
 <link rel="stylesheet" href="xo5-styles.css">
 </head>
 <body>
@@ -210,16 +215,11 @@
 </div>
 </div>
 </div>
-<div class="room-header" id="room-header">
-<div class="room-name">
-<span>&#127968;&#65039;</span>
-<span id="room-name-text">...</span>
-</div>
-</div>
 <div class="timer-section">
 <div class="turn-strip">
 <span class="turn-strip-party" id="game-timer-fs">0:00</span>
 </div>
+<div class="timer-rows">
 <div class="timer-row">
 <span class="label">&#9201;&#65039; Партия:</span>
 <span class="value" id="game-timer">0:00</span>
@@ -227,6 +227,8 @@
 <div class="timer-row turn-row">
 <span class="label">&#127919; Ход:</span>
 <span class="value" id="turn-timer-text">20:00</span>
+</div>
+<div class="room-inline"><span>&#127968;&#65039;</span><span id="room-name-text">...</span></div>
 </div>
 <div class="progress-container">
 <div id="turn-progress-bar" class="progress-bar state-normal" style="width: 100%;">

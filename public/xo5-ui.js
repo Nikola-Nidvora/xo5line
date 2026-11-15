@@ -12,6 +12,12 @@
 // разметка xo5.html v2.1.0; тёмная тема стала стартовой по умолчанию
 // (system остаётся полноценным выбором); флаг xo5-returning для
 // редиректа «своих» игроков с визитки сразу в игру (index.html v2.1.4).
+// 1.0.13: после выбора темы в подменю меню шестерёнки закрывается само
+// сразу (window.closeTopSettings() в обработчике .theme-option).
+// 1.0.14: фикс generateInitialRevealed для нечётного INITIAL_GRID_SIZE —
+// целые ключи -4..4, зона строго центрирована на (0,0); при 9 старая
+// формула давала полуцелые ключи (зона смещена на полклетки, ходы
+// невозможны — canMoveInCell никогда не true).
 // База 1.0.9 не изменена, кроме двух документированных строк:
 // markReturningUser() в showScreen (ветка лобби) и clearReturningUser()
 // в успешном удалении аккаунта.
@@ -32,7 +38,7 @@ import * as core from './xo5-core.js';
 import * as online from './xo5-online.js';
 import * as bot from './xo5-bot.js';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.12';
+export const MODULE_VERSION = '1.0.14';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.ui = MODULE_VERSION;
@@ -74,9 +80,14 @@ else btn.classList.remove('busy');
 }
 export function generateInitialRevealed() {
 const revealed = [];
-const half = INITIAL_GRID_SIZE / 2;
-for (let x = -half; x < half; x++)
-for (let y = -half; y < half; y++)
+// 1.0.14: целочисленный старт — работает и для чётного, и для нечётного
+// INITIAL_GRID_SIZE: 9 → -4..4 (центр строго (0,0)); 10 → -5..4 (как прежде).
+// Старая формула (-N/2 .. N/2) при нечётном N давала полуцелые ключи:
+// зона смещалась на полклетки, а клетки становились недоступны для ходов.
+const start = -Math.floor(INITIAL_GRID_SIZE / 2);
+const end = start + INITIAL_GRID_SIZE - 1;
+for (let x = start; x <= end; x++)
+for (let y = start; y <= end; y++)
 revealed.push(`${x},${y}`);
 return revealed;
 }
@@ -159,7 +170,7 @@ mc.classList.toggle('touch-mode', core.getTouchMode());
 // 1.0.12: при отсутствии сохранённого выбора стартуем с тёмной темы;
 // системная тема остаётся полноценным пунктом подменю.
 // Применение: атрибут data-theme на <html>; канвас читает его каждый кадр
-// (xo5-core.js 1.0.2); стили — каскадом html[data-theme="dark"] (styles 1.0.15).
+// (xo5-core.js 1.0.2); стили — каскадом html[data-theme="dark"] (styles 1.0.21).
 const THEME_STORAGE_KEY = 'xo5-theme';
 // 1.0.11: фирменные сплошные цвета адресной строки
 const THEME_COLOR_LIGHT = '#667eea';
@@ -258,6 +269,7 @@ btn.addEventListener('click', (e) => {
 e.stopPropagation();
 setTheme(btn.getAttribute('data-theme-choice'));
 closeThemeSubmenu();
+window.closeTopSettings(); // 1.0.13: меню закрывается само сразу после выбора
 });
 });
 }

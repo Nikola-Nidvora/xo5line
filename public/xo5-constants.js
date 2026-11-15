@@ -1,19 +1,21 @@
 // ============================================================
 // XO5 · 5 в ряд · Модуль 2/8: константы и конфигурация
-// v2.1.2 (глобальная версия игры — точка истины)
+// v2.1.3 (глобальная версия игры — точка истины)
 // Чистый модуль: без DOM, без Firebase, без состояния партии.
 // v2.1.1: хотфикс — бот-кнопка «В лобби (отмена игры)» не должна
 // появляться в онлайн-партии (правки в xo5-ui.js 1.0.9);
 // повышение VERSION. Новых констант не добавлено.
 // v2.1.2: релиз «тёмная тема» — повышение VERSION и
-// MODULE_VERSION. Новых констант не добавлено: цвета тем живут
-// в xo5-styles.css 1.0.10 (хвост) и в палитрах xo5-core.js 1.0.2.
+// MODULE_VERSION. Новых констант не добавлено.
+// v2.1.3: INITIAL_GRID_SIZE 10 → 9 — начальное поле 9×9
+// (центрирование по центральной клетке (0,0)); синхронно с
+// xo5-bot.js 1.0.9 (initBoard −4..4).
 // ============================================================
 // ---------- Версия и авторство ----------
-export const VERSION = '2.1.2';
+export const VERSION = '2.1.3';
 export const AUTHORS = 'Ni.Coder & Qwen';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.7';
+export const MODULE_VERSION = '1.0.8';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.constants = MODULE_VERSION;
@@ -34,7 +36,7 @@ export const WIN_LINE_ANIMATION_DURATION = 1.0;
 export const WIN_MODAL_DELAY = (WIN_LINE_ANIMATION_DURATION + 1) * 1000;
 export const AIM_FADE_MS = 120;
 export const CELL_SIZE = 14;
-export const INITIAL_GRID_SIZE = 10;
+export const INITIAL_GRID_SIZE = 9;
 export const REVEAL_RADIUS = 5;
 export const MIN_ZOOM = 0.3;
 export const MAX_ZOOM = 4;
