@@ -1,7 +1,7 @@
 /* ============================================================
 XO5 — 5 в ряд · Стили игры
 v2.1.2 (релиз «тёмная тема»)
-MODULE_VERSION = 1.0.22.
+MODULE_VERSION = 1.0.21.
 Метод: база 1.0.5 (рабочая, GitHub) БЕЗ ИЗМЕНЕНИЙ + аддитивный
 хвост в конце файла (переменные тёмной темы, новые сущности,
 тёмные переопределения с префиксом html[data-theme="dark"]).
@@ -35,15 +35,11 @@ resume / pause) переведены в верхние модалки: position 
 центрированы, ширина 420, ВЫНУТЫ из потока #game-screen (компоновка
 под ними не прыгает при появлении); развод по вертикали двух
 одновременных плашек; JS и длительность показа не менялись.
-1.0.22: 41.38 — ТЕЛЕФОН (≤480px): окно-карточка 360×600 по центру
-(ширина 360, высота 600, обе ограничены вьюпортом), рамка-ориентир
-по ширине окна, компактные кнопки (не вылезают за края);
-десктоп и фуллскрин не тронуты (420 / во всю высоту).
 ============================================================ */
 /* ---------- Версия модуля (для реестра) ----------
 CSS-файлы не регистрируются в window.XO5_VERSIONS напрямую,
 но версия документируется в комментарии и в базе знаний.
-MODULE_VERSION = 1.0.22 */
+MODULE_VERSION = 1.0.21 */
 /* ---------- Reset & base ---------- */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -1569,6 +1565,11 @@ html[data-theme="dark"] .room-inline { color: var(--d-room-text); }
 width: 100%;
 }
 /* ---------- 41.37 (1.0.21) P2: плашки-предупреждения → верхние модалки ---------- */
+/* Вынуты из потока #game-screen: компоновка под ними не прыгает при
+появлении/скрытии. Fixed сверху по центру, ширина = колонка 420.
+Логика показа/скрытия и длительность — прежние (JS не тронут).
+z-index 9990: выше контента, ниже тоста (9998), меню шестерёнки (10004)
+и модалок (10001+). */
 .disconnect-banner,
 .pause-request-banner,
 .resume-notice-banner,
@@ -1582,50 +1583,17 @@ margin: 0;
 z-index: 9990;
 box-shadow: 0 8px 24px rgba(0,0,0,0.35);
 }
+/* Развод двух одновременных плашек по вертикали (порядок sibling'ов в xo5.html):
+PLAYING: disconnect → pause-request; PAUSED: resume-notice → pause-banner. */
 .disconnect-banner.active ~ .pause-request-banner.active {
 top: calc(196px + env(safe-area-inset-top));
 }
 .resume-notice-banner.active ~ .pause-banner.active {
 top: calc(132px + env(safe-area-inset-top));
 }
-/* ---------- 41.38 (1.0.22) ТЕЛЕФОН (≤480px): окно-карточка 360×600, компактные кнопки ---------- */
-/* Десктоп и фуллскрин не тронуты: 420px / во всю высоту. На телефоне окно
-становится карточкой 360×600 по центру (обе стороны ограничены вьюпортом),
-рамка-ориентир идёт по ширине окна, кнопки уменьшены и не вылезают за края. */
-@media (max-width: 480px) {
-.container:not(.fullscreen-mode),
-.container.compact-mode:not(.fullscreen-mode),
-.container.game-mode:not(.fullscreen-mode),
-.container.compact-mode.lobby-min:not(.fullscreen-mode) {
-width: 360px;
-max-width: calc(100vw - 12px);
-height: 600px;
-max-height: calc(100dvh - 16px);
-min-height: 0;
-margin: auto;
-}
-/* рамка-ориентир = ширина окна телефона */
-#auth-screen::before,
-#lobby-screen::before,
-#game-screen::before {
-left: 0;
-transform: none;
-width: 100%;
-max-width: none;
-}
-/* кнопки: уменьшены, гарантированно внутри экрана */
-button { padding: 10px 8px; font-size: 14px; }
-.controls-row { gap: 4px; }
-.controls-row button { padding: 8px 4px; font-size: 10px; min-width: 0; }
-.lobby-item button { padding: 6px 10px; font-size: 12px; }
-.bot-persona-btn, .bot-side-btn { min-width: 0; padding: 6px 4px; font-size: 10px; }
-.bot-score { font-size: 8px; }
-.settings-menu { min-width: 190px; }
-#game-screen .canvas-wrapper { min-height: 120px; }
-}
 /* ============================================================
-КОНЕЦ ФАЙЛА xo5-styles.css · MODULE_VERSION = 1.0.22
+КОНЕЦ ФАЙЛА xo5-styles.css · MODULE_VERSION = 1.0.21
 Контроль целостности копии: последней строкой файла должен быть
-комментарий «КОНЕЦ ФАЙЛА xo5-styles.css · MODULE_VERSION = 1.0.22».
+комментарий «КОНЕЦ ФАЙЛА xo5-styles.css · MODULE_VERSION = 1.0.21».
 Если файл обрывается раньше — копия повреждена, не деплоить.
 ============================================================ */
