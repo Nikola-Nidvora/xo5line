@@ -581,4 +581,4 @@ refreshUndoButton();
 }
 export const resetBotState = stopBotGame;
 export const exitBotGame = stopBotGame;
-console.log('%c[BOT] модуль бота загружен (bot ${MODULE_VERSION})', 'color: #ab47bc; font-weight: bold;');
+console.log(`%c[BOT] модуль бота загружен (bot ${MODULE_VERSION})`, 'color: #ab47bc; font-weight: bold;');

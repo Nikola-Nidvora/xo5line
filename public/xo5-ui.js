@@ -18,6 +18,14 @@
 // целые ключи -4..4, зона строго центрирована на (0,0); при 9 старая
 // формула давала полуцелые ключи (зона смещена на полклетки, ходы
 // невозможны — canMoveInCell никогда не true).
+// 1.0.15: СПАСЕНИЕ ИЗ ЛОВУШКИ «ВИСЯЧАЯ МОДАЛКА БОТА»: closeBotModals()
+// при входе на экран онлайн-игры (модалка выбора не переживает переход);
+// запрет старта бота поверх активной онлайн-партии (startBotGameFromUI);
+// botToLobby/botPlayAgain при активной онлайн-партии больше не мёртвые —
+// выходят из бот-режима и возвращают игрока в онлайн-партию;
+// надёжный пересчёт канваса при повороте/ресайзе: orientationchange +
+// ResizeObserver на #canvas-wrapper + requestAnimationFrame (замер
+// после компоновки, поле всегда доедает свободное место).
 // База 1.0.9 не изменена, кроме двух документированных строк:
 // markReturningUser() в showScreen (ветка лобби) и clearReturningUser()
 // в успешном удалении аккаунта.
@@ -38,7 +46,7 @@ import * as core from './xo5-core.js';
 import * as online from './xo5-online.js';
 import * as bot from './xo5-bot.js';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.14';
+export const MODULE_VERSION = '1.0.15';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.ui = MODULE_VERSION;
@@ -713,6 +721,8 @@ if (id === 'game-screen') {
 container.classList.add('game-mode');
 container.classList.remove('compact-mode');
 container.classList.remove('lobby-min');
+// 1.0.15: онлайн-игра не может стартовать под висячей модалкой бота
+if (!bot.isBotMode()) closeBotModals();
 core.resizeCanvas(fullscreenMode);
 applyModeClasses();
 } else {
@@ -750,9 +760,28 @@ online.pauseLobbySubscriptions();
 hideBotButton();
 }
 }
-window.addEventListener('resize', () => {
-if (document.getElementById('game-screen').classList.contains('active')) core.resizeCanvas(fullscreenMode);
+// ---------- 1.0.15: надёжный пересчёт канваса (поворот экрана, ресайз) ----------
+// На мобильных resize нередко стреляет ДО завершения компоновки, и
+// resizeCanvas() читает устаревший rect обёртки → поле оставалось узким
+// после поворота. orientationchange + ResizeObserver на обёртке ловят
+// ЛЮБОЕ изменение свободного места, rAF откладывает замер до после-layout.
+let canvasResizeRaf = 0;
+function scheduleCanvasResize() {
+if (!document.getElementById('game-screen').classList.contains('active')) return;
+if (canvasResizeRaf) cancelAnimationFrame(canvasResizeRaf);
+canvasResizeRaf = requestAnimationFrame(() => {
+canvasResizeRaf = 0;
+core.resizeCanvas(fullscreenMode);
 });
+}
+window.addEventListener('resize', scheduleCanvasResize);
+window.addEventListener('orientationchange', scheduleCanvasResize);
+try {
+const canvasWrapEl = document.getElementById('canvas-wrapper');
+if (canvasWrapEl && typeof ResizeObserver !== 'undefined') {
+new ResizeObserver(() => scheduleCanvasResize()).observe(canvasWrapEl);
+}
+} catch (e) {}
 // ---------- меню шестерёнки и справка ----------
 export function refreshSettingsMenu() {
 const lo = document.getElementById('mi-logout');
@@ -1582,6 +1611,13 @@ const over = bot.PERSONAS.find(x => x.id === p.unlockOver);
 const word = (p.unlockNeed === 1) ? 'победа' : 'победы';
 return `${p.unlockNeed} ${word} над ${over ? over.name : 'предыдущим уровнем'}`;
 }
+// ---------- 1.0.15: закрытие обеих модалок бота (спасение из ловушки) ----------
+export function closeBotModals() {
+const sel = document.getElementById('bot-select-overlay');
+if (sel) sel.classList.remove('active');
+const res = document.getElementById('bot-result-overlay');
+if (res) res.classList.remove('active');
+}
 export function showBotSelectModal() {
 if (onlineTransitionPending) return;
 if (online.getMyActiveGameId()) return;
@@ -1630,6 +1666,9 @@ container.appendChild(btn);
 }
 window.startBotGameFromUI = function() {
 window.closeBotSelectModal();
+// 1.0.15: бот не стартует поверх активной онлайн-партии
+const g = online.getCurrentGame();
+if (g && (g.status === STATUS_PLAYING || g.status === STATUS_PAUSED)) return;
 bot.startBotGame(botSelectedPersona, botSelectedSide);
 online.startGame(false);
 enterBotGameUI();
@@ -1719,6 +1758,12 @@ const g = online.getCurrentGame();
 if (g && (g.status === STATUS_PLAYING || g.status === STATUS_PAUSED)) {
 const overlay = document.getElementById('bot-result-overlay');
 if (overlay) overlay.classList.remove('active');
+// 1.0.15: спасение — выходим из бот-режима и возвращаем в онлайн-партию
+if (bot.isBotMode()) {
+bot.stopBotGame();
+showOnlineElements();
+online.startGame(false);
+}
 return;
 }
 document.getElementById('bot-result-overlay').classList.remove('active');
@@ -1731,7 +1776,16 @@ const overlay = document.getElementById('bot-result-overlay');
 if (overlay) overlay.classList.remove('active');
 // v2.1.1: не бросаем активную онлайн-партию через устаревший оверлей бота
 const g = online.getCurrentGame();
-if (g && (g.status === STATUS_PLAYING || g.status === STATUS_PAUSED)) return;
+if (g && (g.status === STATUS_PLAYING || g.status === STATUS_PAUSED)) {
+// 1.0.15: кнопка больше не мёртвая — гасим бот-режим и возвращаем
+// игрока в его онлайн-партию (вместо зависания до F5)
+if (bot.isBotMode()) {
+bot.stopBotGame();
+showOnlineElements();
+online.startGame(false);
+}
+return;
+}
 const resOverlay = document.getElementById('result-overlay');
 if (resOverlay) resOverlay.classList.remove('active');
 const layer = document.getElementById('confetti-layer');
