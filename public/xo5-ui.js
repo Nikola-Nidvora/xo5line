@@ -26,6 +26,10 @@
 // надёжный пересчёт канваса при повороте/ресайзе: orientationchange +
 // ResizeObserver на #canvas-wrapper + requestAnimationFrame (замер
 // после компоновки, поле всегда доедает свободное место).
+// 1.0.16: пункт меню «К визитке» (gotoHome) ведёт на SITE_HOME_URL +
+// '?home=1' — escape-параметр редиректа «своих» (index.html v2.1.4);
+// без него визитка мгновенно возвращала игрока в игру.
+// gotoSite() (баннер «К новой версии») оставлен с '?upd=' как прежде.
 // База 1.0.9 не изменена, кроме двух документированных строк:
 // markReturningUser() в showScreen (ветка лобби) и clearReturningUser()
 // в успешном удалении аккаунта.
@@ -46,7 +50,7 @@ import * as core from './xo5-core.js';
 import * as online from './xo5-online.js';
 import * as bot from './xo5-bot.js';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.15';
+export const MODULE_VERSION = '1.0.16';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.ui = MODULE_VERSION;
@@ -842,7 +846,8 @@ location.replace(SITE_HOME_URL + '?upd=' + Date.now());
 };
 window.gotoHome = function() {
 window.closeTopSettings();
-location.replace(SITE_HOME_URL + '?upd=' + Date.now());
+// 1.0.16: escape-параметр ?home=1 — визитка не редиректит «своих» обратно
+location.replace(SITE_HOME_URL + '?home=1');
 };
 function showUpdateBanner(remoteVersion) {
 const banner = document.getElementById('update-banner');
