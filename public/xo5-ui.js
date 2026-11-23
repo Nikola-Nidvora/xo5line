@@ -28,8 +28,17 @@
 // после компоновки, поле всегда доедает свободное место).
 // 1.0.16: пункт меню «К визитке» (gotoHome) ведёт на SITE_HOME_URL +
 // '?home=1' — escape-параметр редиректа «своих» (index.html v2.1.4);
-// без него визитка мгновенно возвращала «своего» игрока в игру.
-// gotoSite() (баннер «К новой версии») остаётся с '?upd=' как прежде.
+// без него визитка мгновенно возвращала игрока в игру.
+// gotoSite() (баннер «К новой версии») оставлен с '?upd=' как прежде.
+// 1.0.17: АДМИН-ГЕЙТ Ctrl+Alt+D на боевом хосте: панель и window.debug
+// недоступны до разблокировки — текущий пользователь должен быть admin
+// И подтвердить пароль регистрации (online.reauthenticateCurrent,
+// Firebase Auth; пароля нет в коде). Разблокировка до закрытия вкладки
+// (sessionStorage 'xo5-debug-unlocked'), флаг дополнительно сверяется с
+// сессией при каждом открытии. localhost/127.0.0.1 — по-прежнему свободно.
+// Лазейка ?debug=1 УДАЛЕНА. Модалка разблокировки строится динамически
+// (разметка xo5.html не меняется); window.debug на боевом создаётся
+// только после разблокировки (buildDebugObject).
 // База 1.0.9 не изменена, кроме двух документированных строк:
 // markReturningUser() в showScreen (ветка лобби) и clearReturningUser()
 // в успешном удалении аккаунта.
@@ -50,7 +59,7 @@ import * as core from './xo5-core.js';
 import * as online from './xo5-online.js';
 import * as bot from './xo5-bot.js';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.16';
+export const MODULE_VERSION = '1.0.17';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.ui = MODULE_VERSION;
@@ -846,8 +855,7 @@ location.replace(SITE_HOME_URL + '?upd=' + Date.now());
 };
 window.gotoHome = function() {
 window.closeTopSettings();
-// 1.0.16: escape-параметр ?home=1 — визитка (index v2.1.4) не редиректит
-// «своих» обратно в игру; без него пункт «К визитке» отскакивал
+// 1.0.16: escape-параметр ?home=1 — визитка не редиректит «своих» обратно
 location.replace(SITE_HOME_URL + '?home=1');
 };
 function showUpdateBanner(remoteVersion) {
@@ -885,8 +893,24 @@ s.onerror = () => finish(false);
 document.head.appendChild(s);
 });
 }
-// ---------- отладочная панель ----------
+// ---------- отладочная панель и админ-гейт (1.0.17) ----------
 let debugPanelOpen = false;
+// 1.0.17: localhost/127.0.0.1 — отладка свободна; ?debug=1 УДАЛЁН.
+const DEBUG_LOCAL = (typeof location !== 'undefined') &&
+(location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+const DEBUG_UNLOCK_KEY = 'xo5-debug-unlocked';
+function isAdminUser() {
+const u = online.getCurrentUser();
+if (!u) return false;
+return (u.displayName || '').toLowerCase() === 'admin';
+}
+function debugUnlockedSession() {
+try { return sessionStorage.getItem(DEBUG_UNLOCK_KEY) === '1'; } catch (e) { return false; }
+}
+// Гейт: локально — всегда; на боевом — флаг вкладки + живая сессия admin
+function debugGateOk() {
+return DEBUG_LOCAL || (debugUnlockedSession() && isAdminUser());
+}
 function openDebugPanel() {
 debugPanelOpen = true;
 renderDebugVersionsLine();
@@ -924,6 +948,91 @@ checkbox.dispatchEvent(new Event('change'));
 }
 });
 });
+// ---------- 1.0.17: модалка разблокировки отладки (строится динамически) ----------
+let debugAuthOverlay = null;
+function ensureDebugAuthModal() {
+if (debugAuthOverlay) return debugAuthOverlay;
+const overlay = document.createElement('div');
+overlay.className = 'help-overlay';
+overlay.id = 'debug-auth-overlay';
+const modal = document.createElement('div');
+modal.className = 'help-modal';
+modal.style.maxWidth = '380px';
+const h = document.createElement('h3');
+h.textContent = '\u{1F512} Доступ к панели отладки';
+const hint = document.createElement('p');
+hint.className = 'help-text';
+hint.textContent = '\u26A0\uFE0F Только аккаунт admin: введите пароль регистрации. Разблокировка действует до закрытия вкладки.';
+const input = document.createElement('input');
+input.type = 'password';
+input.id = 'debug-auth-password';
+input.placeholder = 'Пароль администратора';
+input.autocomplete = 'off';
+const err = document.createElement('div');
+err.className = 'error';
+err.id = 'debug-auth-error';
+const btnOk = document.createElement('button');
+btnOk.type = 'button';
+btnOk.textContent = '\u{1F513} Разблокировать';
+const btnCancel = document.createElement('button');
+btnCancel.type = 'button';
+btnCancel.className = 'secondary';
+btnCancel.textContent = 'Отмена';
+btnOk.addEventListener('click', () => { attemptDebugUnlock(); });
+btnCancel.addEventListener('click', () => { closeDebugAuthModal(); });
+input.addEventListener('keydown', (e) => {
+if (e.key === 'Enter') { e.preventDefault(); attemptDebugUnlock(); }
+});
+modal.appendChild(h);
+modal.appendChild(hint);
+modal.appendChild(input);
+modal.appendChild(err);
+modal.appendChild(btnOk);
+modal.appendChild(btnCancel);
+overlay.appendChild(modal);
+document.body.appendChild(overlay);
+debugAuthOverlay = overlay;
+return overlay;
+}
+function showDebugAuthModal() {
+const overlay = ensureDebugAuthModal();
+const err = document.getElementById('debug-auth-error');
+if (err) { err.textContent = ''; err.style.display = 'none'; }
+const input = document.getElementById('debug-auth-password');
+if (input) input.value = '';
+overlay.classList.add('active');
+setTimeout(() => { if (input) input.focus(); }, 80);
+}
+function closeDebugAuthModal() {
+if (debugAuthOverlay) debugAuthOverlay.classList.remove('active');
+}
+async function attemptDebugUnlock() {
+const err = document.getElementById('debug-auth-error');
+const input = document.getElementById('debug-auth-password');
+const showErr = (t) => { if (err) { err.textContent = t; err.style.display = 'block'; } };
+if (!isAdminUser()) {
+showErr('\u26A0\uFE0F Доступ только для аккаунта администратора (admin).');
+return;
+}
+if (typeof online.reauthenticateCurrent !== 'function') {
+showErr('\u26A0\uFE0F Требуется xo5-online.js 1.0.6 или новее.');
+return;
+}
+const pass = input ? input.value : '';
+if (!pass) { showErr('\u26A0\uFE0F Введите пароль.'); return; }
+try {
+await online.reauthenticateCurrent(pass);
+} catch (e) {
+if (input) input.value = '';
+if (e && e.code === 'auth/too-many-requests') showErr('\u26A0\uFE0F Слишком много попыток. Подождите немного.');
+else showErr('\u274C Неверный пароль. Доступ запрещён.');
+return;
+}
+try { sessionStorage.setItem(DEBUG_UNLOCK_KEY, '1'); } catch (e) {}
+closeDebugAuthModal();
+buildDebugObject();
+openDebugPanel();
+}
 // ---------- глобальная клавиатура ----------
 const PAN_KEYS = {
 KeyW: [0, -1], ArrowUp: [0, -1],
@@ -941,7 +1050,10 @@ return;
 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 if (e.ctrlKey && e.altKey && e.code === 'KeyD') {
 e.preventDefault();
-debugPanelOpen ? window.closeDebugPanel() : openDebugPanel();
+// 1.0.17: на боевом хосте панель открывается только через гейт
+if (debugPanelOpen) { window.closeDebugPanel(); return; }
+if (debugGateOk()) { buildDebugObject(); openDebugPanel(); }
+else showDebugAuthModal();
 return;
 }
 if (e.ctrlKey || e.altKey || e.metaKey) return;
@@ -1810,9 +1922,9 @@ export function hideBotButton() {
 const btn = document.getElementById('bot-game-btn');
 if (btn) btn.style.display = 'none';
 }
-// ---------- отладочный объект ----------
-const DEBUG_ALLOWED = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.search.indexOf('debug=1') !== -1;
-if (DEBUG_ALLOWED) {
+// ---------- отладочный объект (1.0.17: создаётся только после гейта) ----------
+function buildDebugObject() {
+if (window.debug) return;
 window.debug = {
 get gameState() { return core.gameState; },
 get camera() { return core.camera; },
@@ -2047,6 +2159,12 @@ console.log('  debug.getConnection()    - состояние соединени�
 console.log('  Дворник протухших — только в админке (xo5_admin).');
 }
 };
-console.log('%c[DEBUG] window.debug доступен (localhost или ?debug=1)', 'color: #a6e3a1; font-weight: bold;');
+console.log('%c[DEBUG] window.debug построен и доступен', 'color: #a6e3a1; font-weight: bold;');
+}
+// 1.0.17: на localhost отладка свободна сразу; на боевом — только после гейта
+if (DEBUG_LOCAL) {
+buildDebugObject();
+} else {
+console.log('%c[DEBUG] Отладка заблокирована: Ctrl+Alt+D + пароль администратора', 'color: #ff9800; font-weight: bold;');
 }
 console.log(`%c[UI] модуль интерфейса загружен (ui ${MODULE_VERSION})`, 'color: #667eea; font-weight: bold;');
