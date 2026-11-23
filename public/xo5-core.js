@@ -8,6 +8,12 @@
 // атрибуту data-theme на <html>; переключение темы не требует
 // перезапуска рендер-цикла (палитра читается каждый кадр).
 // Светлая палитра равна цветам 1.0.1 — вид не меняется.
+// 1.0.3: фикс белой «вспышки» поля в момент хода/ресайза:
+// resizeCanvas НЕ трогает canvas.width/height, если размер не
+// изменился (присваивание сбрасывает битмап в прозрачный, и кадр
+// с белым CSS-фоном элемента успевает дойти до композитинга),
+// а при реальном изменении размера синхронно перерисовывает поле
+// (drawBoard) в той же задаче — очищенный битмап не показывается.
 // ============================================================
 import {
 CELL_SIZE, REVEAL_RADIUS, MIN_ZOOM, MAX_ZOOM, CAMERA_BOUNDARY_PADDING,
@@ -17,7 +23,7 @@ LOTTERY_SLOW_END, LOTTERY_FAST_END, LOTTERY_BRAKE_END, LOTTERY_REVEAL_END,
 LOTTERY_FADE_END, LOTTERY_OMEGA_SLOW, LOTTERY_OMEGA_FAST
 } from './xo5-constants.js';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.2';
+export const MODULE_VERSION = '1.0.3';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.core = MODULE_VERSION;
@@ -56,23 +62,23 @@ let lastCursorStyle = '';
 // lotteryOverlay/lotteryText/lotteryTextMuted — оверлей и подписи розыгрыша.
 // Светлые значения совпадают по цвету с хардкодом 1.0.1.
 const CANVAS_PALETTES = {
- light: {
- fog: '#e8e8e8', cell: '#ffffff', grid: '#cccccc',
- symX: '#667eea', symO: '#764ba2',
- lotteryOverlay: '#ffffff', lotteryText: '#666666', lotteryTextMuted: '#999999'
- },
- dark: {
- fog: '#2a2a3e', cell: '#35354f', grid: '#4e4e75',
- symX: '#7b8ff5', symO: '#9d7bd6',
- lotteryOverlay: '#12162b', lotteryText: '#b0b0c0', lotteryTextMuted: '#808095'
- }
+light: {
+fog: '#e8e8e8', cell: '#ffffff', grid: '#cccccc',
+symX: '#667eea', symO: '#764ba2',
+lotteryOverlay: '#ffffff', lotteryText: '#666666', lotteryTextMuted: '#999999'
+},
+dark: {
+fog: '#2a2a3e', cell: '#35354f', grid: '#4e4e75',
+symX: '#7b8ff5', symO: '#9d7bd6',
+lotteryOverlay: '#12162b', lotteryText: '#b0b0c0', lotteryTextMuted: '#808095'
+}
 };
 function currentTheme() {
- if (typeof document === 'undefined') return 'light';
- return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+if (typeof document === 'undefined') return 'light';
+return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
 }
 function palette() {
- return CANVAS_PALETTES[currentTheme()];
+return CANVAS_PALETTES[currentTheme()];
 }
 // ---------- ввод ----------
 export let touchMode = !!(typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
@@ -147,8 +153,15 @@ const rect = wrapper.getBoundingClientRect();
 const padding = isFullscreen ? 4 : 20;
 const w = Math.max(200, Math.floor(rect.width - padding));
 const h = Math.max(160, Math.floor(rect.height - padding));
+// 1.0.3: размер не изменился — НЕ присваиваем canvas.width/height:
+// присваивание сбрасывает битмап в прозрачный, и один кадр с белым
+// CSS-фоном элемента успевает дойти до композитинга («вспышка»).
+if (canvas.width === w && canvas.height === h) return;
 canvas.width = w; canvas.height = h;
 canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+// 1.0.3: синхронная перерисовка в той же задаче — очищенный битмап
+// не показывается ни на одном кадре; render-loop продолжит как обычно.
+drawBoard();
 }
 // ---------- геометрия клетки ----------
 export function cellFromPixel(px, py) {
