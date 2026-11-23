@@ -12,10 +12,10 @@
 // xo5-bot.js 1.0.9 (initBoard −4..4).
 // ============================================================
 // ---------- Версия и авторство ----------
-export const VERSION = '2.1.3';
+export const VERSION = '2.1.4';
 export const AUTHORS = 'Ni.Coder & Qwen';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.8';
+export const MODULE_VERSION = '1.0.9';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.constants = MODULE_VERSION;
