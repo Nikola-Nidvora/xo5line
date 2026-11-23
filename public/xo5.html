@@ -37,6 +37,26 @@
 3) Подменю выбора темы: .theme-block оборачивает #mi-theme и
 #theme-submenu с тремя .theme-option (data-theme-choice: dark/light/system);
 обработчики навешивает xo5-ui.js 1.0.12. Эмодзи — только сущностями. -->
+<!-- v2.1.1: тема ДО первой краски — убирает «светлую вспышку» при F5.
+ES-модули (xo5-ui.js) отложенные и применяют тему ПОСЛЕ первого кадра;
+этот скрипт ставит data-theme и цвет адресной строки синхронно при разборе.
+Значение по умолчанию = dark, как в игре (ui 1.0.12+). -->
+<script>
+(function () {
+var t = 'dark';
+try {
+var v = localStorage.getItem('xo5-theme');
+if (v === 'light' || v === 'dark' || v === 'system') t = v;
+} catch (e) {}
+if (t === 'system') {
+t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+}
+document.documentElement.setAttribute('data-theme', t);
+var c = (t === 'dark') ? '#35354f' : '#667eea';
+var m = document.querySelectorAll('meta[name="theme-color"]');
+for (var i = 0; i < m.length; i++) m[i].setAttribute('content', c);
+})();
+</script>
 <link rel="stylesheet" href="xo5-styles.css">
 </head>
 <body>
