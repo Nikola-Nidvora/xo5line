@@ -5,6 +5,12 @@
 // принудительно закрывает модалки бота перед показом игрового экрана
 // (дублирует ui.showScreen из ui 1.0.15 — глубина защиты); ловушка
 // «модалка выбора бота поверх стартовавшей онлайн-партии» исключена.
+// 1.0.6: ГЕЙТ ОТЛАДКИ (только admin): export reauthenticateCurrent(password) —
+// ре-аутентификация ТЕКУЩЕГО пользователя его паролем регистрации
+// (сравнение выполняет Firebase Auth, пароля нет в коде); вызывается
+// xo5-ui.js 1.0.17 при разблокировке Ctrl+Alt+D на боевом хосте.
+// РЕЗЕРВ ИМЁН: window.register() отклоняет RESERVED_NAMES ('admin') —
+// создание админа только вручную в Firebase Authentication.
 // ============================================================
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import {
@@ -37,11 +43,13 @@ import * as core from './xo5-core.js';
 import * as ui from './xo5-ui.js';
 import * as bot from './xo5-bot.js';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.5';
+export const MODULE_VERSION = '1.0.6';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.online = MODULE_VERSION;
 }
+// ---------- 1.0.6: зарезервированные имена (создание только вручную в Firebase) ----------
+const RESERVED_NAMES = ['admin'];
 // ---------- Firebase ----------
 const firebaseConfig = {
 apiKey: "AIzaSyBErGlVe3j1IIPYiBGz2TAJxr96uV1Nff0",
@@ -616,6 +624,11 @@ return ui.showMessage('auth-error', '\u26A0\uFE0F Для регистрации 
 }
 const nameErr = ui.validateUsername(username, NAME_MAX_REGISTER);
 if (nameErr) return ui.showMessage('auth-error', nameErr + NAME_RULE_HINT);
+// 1.0.6: зарезервированные имена не регистрируются через игру —
+// только ручное создание в Firebase Authentication (admin уже существует)
+if (RESERVED_NAMES.includes(username.toLowerCase())) {
+return ui.showMessage('auth-error', '\u26A0\uFE0F Это имя зарезервировано и выдаётся только вручную администратором.');
+}
 const passErr = ui.validatePassword(password);
 if (passErr) return ui.showMessage('auth-error', passErr);
 ui.setBusy(btn, true);
@@ -1902,6 +1915,15 @@ try { await signOut(auth); } catch (e) {}
 return authDeleted;
 }
 export async function reauthForDelete(password) {
+const credential = EmailAuthProvider.credential(currentUser.email, password);
+await reauthenticateWithCredential(currentUser, credential);
+}
+// ---------- 1.0.6: ре-аутентификация текущего пользователя (гейт Ctrl+Alt+D) ----------
+// Пароль нигде не хранится: сравнение выполняет Firebase Auth на сервере.
+// Вызывается xo5-ui.js 1.0.17: разблокировка отладки на боевом хосте
+// возможна только для аккаунта admin и только его паролем регистрации.
+export async function reauthenticateCurrent(password) {
+if (!currentUser) throw new Error('auth/no-current-user');
 const credential = EmailAuthProvider.credential(currentUser.email, password);
 await reauthenticateWithCredential(currentUser, credential);
 }
