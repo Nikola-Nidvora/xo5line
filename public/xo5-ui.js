@@ -39,6 +39,10 @@
 // Лазейка ?debug=1 УДАЛЕНА. Модалка разблокировки строится динамически
 // (разметка xo5.html не меняется); window.debug на боевом создаётся
 // только после разблокировки (buildDebugObject).
+// 1.0.18: CACHE-BUST для «К визитке» (пункт S4 хотелок): gotoHome()
+// добавляет к '?home=1' метку времени '&t=' — визитка всегда грузится
+// свежей с сервера, а не из кэша браузера; escape-логика index.html
+// (проверка has('home')) от дополнительного параметра не меняется.
 // База 1.0.9 не изменена, кроме двух документированных строк:
 // markReturningUser() в showScreen (ветка лобби) и clearReturningUser()
 // в успешном удалении аккаунта.
@@ -59,7 +63,7 @@ import * as core from './xo5-core.js';
 import * as online from './xo5-online.js';
 import * as bot from './xo5-bot.js';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.17';
+export const MODULE_VERSION = '1.0.18';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.ui = MODULE_VERSION;
@@ -856,7 +860,9 @@ location.replace(SITE_HOME_URL + '?upd=' + Date.now());
 window.gotoHome = function() {
 window.closeTopSettings();
 // 1.0.16: escape-параметр ?home=1 — визитка не редиректит «своих» обратно
-location.replace(SITE_HOME_URL + '?home=1');
+// 1.0.18: cache-bust &t= — визитка всегда грузится свежей с сервера,
+// а не из кэша браузера; проверка has('home') в index.html не страдает
+location.replace(SITE_HOME_URL + '?home=1&t=' + Date.now());
 };
 function showUpdateBanner(remoteVersion) {
 const banner = document.getElementById('update-banner');
