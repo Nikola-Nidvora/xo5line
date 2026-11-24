@@ -11,6 +11,11 @@
 // xo5-ui.js 1.0.17 при разблокировке Ctrl+Alt+D на боевом хосте.
 // РЕЗЕРВ ИМЁН: window.register() отклоняет RESERVED_NAMES ('admin') —
 // создание админа только вручную в Firebase Authentication.
+// 1.0.7: ВИДИМЫЙ ОТКАЗ ОТМЕНЫ ХОДА: catch транзакции window.undoMove
+// больше не тихий — ui.showTopNotification с причиной (соперник уже
+// сходил / игра завершена / ошибка соединения). Пара для ui 1.0.19:
+// после выхода ui 1.0.20 (снятие дублирующей обёртки wrapUndoMoveForFeedback)
+// единственным источником уведомления остаётся этот модуль.
 // ============================================================
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import {
@@ -43,7 +48,7 @@ import * as core from './xo5-core.js';
 import * as ui from './xo5-ui.js';
 import * as bot from './xo5-bot.js';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.6';
+export const MODULE_VERSION = '1.0.7';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.online = MODULE_VERSION;
@@ -1405,6 +1410,12 @@ if (undoHideTimer) { clearTimeout(undoHideTimer); undoHideTimer = null; }
 undoInfo = null;
 ui.endUndoCountdown();
 }
+// 1.0.7: человекочитаемая причина отказа отмены для верхней плашки
+function undoRejectMessage(reason) {
+if (reason === 'VERSION_MISMATCH' || reason === 'MOVE_NOT_FOUND') return '\u26A0\uFE0F Отмена не выполнена: соперник уже сходил.';
+if (reason === 'NOT_PLAYING' || reason === 'GAME_NOT_FOUND') return '\u26A0\uFE0F Отмена не выполнена: игра уже завершена.';
+return '\u26A0\uFE0F Отмена не выполнена: ошибка соединения. Попробуйте снова.';
+}
 export async function tryMakeMove(cellX, cellY) {
 if (bot.isBotMode()) {
 bot.onPlayerMove(cellX, cellY);
@@ -1534,7 +1545,9 @@ lastMove: info.prevLastMove, moveVersion: (g.moveVersion || 0) + 1, turnStartTim
 });
 });
 } catch (e) {
+// 1.0.7: отказ больше не тихий — причина видна в верхней плашке
 console.warn('Отмена хода отклонена:', e && e.message ? e.message : e);
+ui.showTopNotification(undoRejectMessage(e && e.message), false);
 expireUndoWindow();
 return;
 } finally {
