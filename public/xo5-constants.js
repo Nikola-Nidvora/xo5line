@@ -10,12 +10,13 @@
 // v2.1.3: INITIAL_GRID_SIZE 10 → 9 — начальное поле 9×9
 // (центрирование по центральной клетке (0,0)); синхронно с
 // xo5-bot.js 1.0.9 (initBoard −4..4).
+// MODULE_VERSION = '1.0.10'
 // ============================================================
 // ---------- Версия и авторство ----------
 export const VERSION = '2.1.5';
 export const AUTHORS = 'Ni.Coder & Qwen';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.9';
+export const MODULE_VERSION = '1.0.10';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.constants = MODULE_VERSION;
