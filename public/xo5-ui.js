@@ -43,6 +43,17 @@
 // добавляет к '?home=1' метку времени '&t=' — визитка всегда грузится
 // свежей с сервера, а не из кэша браузера; escape-логика index.html
 // (проверка has('home')) от дополнительного параметра не меняется.
+// 1.0.19: МОБИЛЬНАЯ ОТМЕНА ХОДА — три правки:
+// (a) beginUndoCountdown в онлайн-ветке принудительно сбрасывает
+// btn.disabled: «залипший» disabled из бот-ветки (бот думает / отмена
+// недоступна) раньше убивал кнопку в онлайне после любой бот-партии —
+// кнопка выглядела серой и не реагировала на тап;
+// (b) отказ транзакции отмены (соперник успел сходить в окно отмены)
+// больше не тихий: обёртка window.undoMove после завершения базового
+// обработчика проверяет, остался ли ход на доске, и показывает верхнее
+// уведомление «Отмена не выполнена…» вместо необъяснимого исчезновения
+// кнопки (xo5-online.js не меняется);
+// (c) на тач-устройствах надписи кнопки без суффикса «[Backspace]».
 // База 1.0.9 не изменена, кроме двух документированных строк:
 // markReturningUser() в showScreen (ветка лобби) и clearReturningUser()
 // в успешном удалении аккаунта.
@@ -63,7 +74,7 @@ import * as core from './xo5-core.js';
 import * as online from './xo5-online.js';
 import * as bot from './xo5-bot.js';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.18';
+export const MODULE_VERSION = '1.0.19';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.ui = MODULE_VERSION;
@@ -1342,9 +1353,11 @@ const btn = document.getElementById('undo-btn');
 if (!btn) return;
 btn.style.display = '';
 syncDynamicRow();
+// 1.0.19(c): на тач-устройствах суффикс [Backspace] не показываем
+const touch = core.getTouchMode();
 if (bot.isBotMode()) {
 if (bot.canUndoBotMove()) {
-btn.textContent = '\u21A9\uFE0F Отменить [Backspace]';
+btn.textContent = touch ? '\u21A9\uFE0F Отменить' : '\u21A9\uFE0F Отменить [Backspace]';
 btn.disabled = false;
 } else {
 btn.disabled = true;
@@ -1352,11 +1365,16 @@ btn.textContent = '\u21A9\uFE0F Отменить (—)';
 }
 return;
 }
+// 1.0.19(a): сброс «залипшего» disabled из бот-режима — онлайн-кнопка
+// всегда кликабельна, пока открыто окно отмены
+btn.disabled = false;
 const tick = () => {
 const info = online.getUndoInfo();
 if (!info) return;
 const rem = Math.max(0, Math.ceil((info.deadline - Date.now()) / 1000));
-btn.textContent = `\u21A9\uFE0F Отменить ход (${rem}) [Backspace]`;
+btn.textContent = touch
+? `\u21A9\uFE0F Отменить ход (${rem})`
+: `\u21A9\uFE0F Отменить ход (${rem}) [Backspace]`;
 };
 tick();
 if (undoLabelTimer) clearInterval(undoLabelTimer);
@@ -1369,6 +1387,25 @@ const btn = document.getElementById('undo-btn');
 if (btn) btn.style.display = 'none';
 syncDynamicRow();
 }
+// ---------- 1.0.19(b): видимый отказ отмены вместо тихого исчезновения ----------
+// Обёртка ставится ПОСЛЕ онлайн-модуля (тело ui выполняется позже тела
+// online): запоминаем окно отмены до вызова и после завершения транзакции
+// смотрим, остался ли ход на доске. Остался при живом статусе playing —
+// транзакция отклонена (VERSION_MISMATCH / MOVE_NOT_FOUND): объясняем
+// игроку верхним уведомлением, почему кнопка погасла без эффекта.
+(function wrapUndoMoveForFeedback() {
+const base = window.undoMove;
+if (typeof base !== 'function') return;
+window.undoMove = async function(btn) {
+const info = online.getUndoInfo();
+await base(btn);
+if (!info) return;
+const stillThere = !!(core.gameState.moves && core.gameState.moves[info.cellKey]);
+if (stillThere && core.getGameStatus() === STATUS_PLAYING) {
+showTopNotification('\u26A0\uFE0F Отмена не выполнена: ход уже изменился соперником.', false);
+}
+};
+})();
 function syncDynamicRow() {
 const row = document.getElementById('controls-dynamic');
 if (!row) return;
