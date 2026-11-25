@@ -41,6 +41,10 @@
 ES-модули (xo5-ui.js) отложенные и применяют тему ПОСЛЕ первого кадра;
 этот скрипт ставит data-theme и цвет адресной строки синхронно при разборе.
 Значение по умолчанию = dark, как в игре (ui 1.0.12+). -->
+<!-- v2.1.2: глазик пароля (#eye-btn) больше НЕ несёт inline onclick —
+обработчик вешает xo5-ui.js 1.0.21 (bindEyeButton) через addEventListener.
+Причина: inline-атрибут мог не сработать (CSP/парсеры/расширения), из-за
+чего переключение «глаз ↔ обезьяна» не происходило. Пара: ui 1.0.21. -->
 <script>
 (function () {
 var t = 'dark';
@@ -184,7 +188,7 @@ for (var i = 0; i < m.length; i++) m[i].setAttribute('content', c);
 <input type="text" id="username" placeholder="Имя пользователя" autocomplete="off" maxlength="8" autofocus readonly onfocus="this.removeAttribute('readonly')" spellcheck="false" autocorrect="off" autocapitalize="none" data-lpignore="true" data-1p-ignore="true">
 <div class="password-wrapper">
 <input type="password" id="password" placeholder="Пароль" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" spellcheck="false" autocorrect="off" autocapitalize="none" data-lpignore="true" data-1p-ignore="true">
-<button type="button" class="eye-btn" id="eye-btn" tabindex="-1" onclick="togglePasswordVisibility()" title="Показать пароль">&#128065;&#65039;</button>
+<button type="button" class="eye-btn" id="eye-btn" tabindex="-1" title="Показать пароль">&#128065;&#65039;</button>
 </div>
 <label class="consent-wrap">
 <input type="checkbox" id="consent-check">
