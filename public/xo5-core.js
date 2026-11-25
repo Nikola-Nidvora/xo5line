@@ -14,6 +14,13 @@
 // с белым CSS-фоном элемента успевает дойти до композитинга),
 // а при реальном изменении размера синхронно перерисовывает поле
 // (drawBoard) в той же задаче — очищенный битмап не показывается.
+// 1.0.4: ДЕ-ЗАЩЁЛКА touchMode: режим ввода определяется ПОСЛЕДНИМ
+// pointer-событием (notePointerType), а не первым тачем за сессию.
+// Старая защёлка (handlePointerDown: touch → touchMode = true
+// навсегда) превращала гибридные ПК (тачскрин/перо/эмуляция) в
+// «телефон»: прицел лип к центральной клетке и ездил с панорамой,
+// debug.touchMode показывал true на ПК. Теперь движение мыши/пера
+// возвращает прицел 1:1 за курсором, касание — переводит в тач-режим.
 // ============================================================
 import {
 CELL_SIZE, REVEAL_RADIUS, MIN_ZOOM, MAX_ZOOM, CAMERA_BOUNDARY_PADDING,
@@ -23,7 +30,7 @@ LOTTERY_SLOW_END, LOTTERY_FAST_END, LOTTERY_BRAKE_END, LOTTERY_REVEAL_END,
 LOTTERY_FADE_END, LOTTERY_OMEGA_SLOW, LOTTERY_OMEGA_FAST
 } from './xo5-constants.js';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.3';
+export const MODULE_VERSION = '1.0.4';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.core = MODULE_VERSION;
@@ -97,6 +104,14 @@ let holdTimer = null;
 let holdActive = false;
 let crosshairX = null;
 let crosshairY = null;
+// ---------- 1.0.4: режим ввода по последнему событию ----------
+// Тач переводит в тач-режим (прицел в центре), мышь/перо — возвращают
+// ПК-режим (прицел 1:1 за курсором). Больше никакой вечной защёлки:
+// гибридный ПК после случайного касания не остаётся «телефоном».
+function notePointerType(type) {
+const v = (type === 'touch');
+if (touchMode !== v) touchMode = v;
+}
 // ---------- прицел и подсветка ----------
 let aimMode = 'mouse';
 const hlAlpha = {};
@@ -736,6 +751,7 @@ return Math.sqrt(dx * dx + dy * dy);
 }
 function handlePointerEnter(e) {
 if (e.pointerType === 'touch') return;
+notePointerType(e.pointerType); // 1.0.4: мышь/перо возвращают ПК-режим
 hoverActive = true;
 aimMode = 'mouse';
 updateMousePixel(e);
@@ -760,8 +776,9 @@ crosshairY = null;
 refreshCanvasCursor();
 }
 function handlePointerDown(e) {
+// 1.0.4: режим по типу события вместо вечной защёлки touch
+notePointerType(e.pointerType);
 if (e.pointerType === 'touch') {
-touchMode = true;
 activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 if (activePointers.size === 2) {
 pinching = true;
@@ -796,6 +813,8 @@ refreshCanvasCursor();
 }, LONG_PRESS_MS);
 }
 function handlePointerMove(e) {
+// 1.0.4: любое движение мыши/пера снимает тач-режим, тач — ставит
+notePointerType(e.pointerType);
 if (e.pointerType === 'touch' && activePointers.has(e.pointerId)) {
 activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 if (pinching && activePointers.size >= 2) {
