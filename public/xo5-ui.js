@@ -52,6 +52,14 @@
 // xo5-online.js 1.0.7 (undoRejectMessage + showTopNotification в catch
 // транзакции): точная причина без двойной плашки и без перезаписи
 // формулировки общей. Пункты (a) и (c) из 1.0.19 сохранены.
+// 1.0.21: ГЛАЗИК ПАРОЛЯ: кнопка #eye-btn привязывается через
+// addEventListener (bindEyeButton), а не через inline onclick в разметке —
+// обработчик не зависит от разрешения inline-атрибутов (CSP/парсеры/
+// расширения) и ставится даже если в боевом xo5.html атрибут потерялся.
+// Защиты: датасет-флаг от двойной привязки при повторной оценке модуля;
+// пропуск привязки, если на кнопке уже есть inline onclick (btn.onclick) —
+// это исключает двойное срабатывание при смешанном деплое (старый html +
+// новый ui). Пара-разметка: xo5.html v2.1.2 снимает inline onclick.
 // База 1.0.9 не изменена, кроме двух документированных строк:
 // markReturningUser() в showScreen (ветка лобби) и clearReturningUser()
 // в успешном удалении аккаунта.
@@ -72,7 +80,7 @@ import * as core from './xo5-core.js';
 import * as online from './xo5-online.js';
 import * as bot from './xo5-bot.js';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.20';
+export const MODULE_VERSION = '1.0.21';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.ui = MODULE_VERSION;
@@ -862,6 +870,20 @@ btn.textContent = '\u{1F441}\uFE0F';
 btn.title = 'Показать пароль';
 }
 };
+// ---------- 1.0.21: привязка глазика пароля через addEventListener ----------
+// Inline onclick в разметке ненадёжен (CSP/парсеры/расширения могли его
+// съесть — отсюда «глазик не переключается»). Здесь обработчик ставится
+// из модуля. Защиты: датасет-флаг от повторной привязки; пропуск, если
+// на кнопке уже есть inline onclick (btn.onclick) — иначе при смешанном
+// деплое (старый html + новый ui) toggle сработает дважды за клик.
+(function bindEyeButton() {
+const btn = document.getElementById('eye-btn');
+if (!btn) return;
+if (btn.dataset.uiBound === '1') return;
+if (btn.onclick) return; // inline-обработчик уже живёт — не дублируем
+btn.dataset.uiBound = '1';
+btn.addEventListener('click', () => { window.togglePasswordVisibility(); });
+})();
 // ---------- навигация и маяк ----------
 window.gotoSite = function() {
 location.replace(SITE_HOME_URL + '?upd=' + Date.now());
@@ -1385,8 +1407,6 @@ const btn = document.getElementById('undo-btn');
 if (btn) btn.style.display = 'none';
 syncDynamicRow();
 }
-// 1.0.20: обёртка window.undoMove из 1.0.19(b) удалена — уведомление об
-// отказе отмены даёт xo5-online.js 1.0.7 (undoRejectMessage в catch транзакции).
 function syncDynamicRow() {
 const row = document.getElementById('controls-dynamic');
 if (!row) return;
