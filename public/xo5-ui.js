@@ -57,14 +57,21 @@
 // обработчик не зависит от разрешения inline-атрибутов (CSP/парсеры/
 // расширения) и ставится даже если в боевом xo5.html атрибут потерялся.
 // Защиты: датасет-флаг от повторной привязки; пропуск, если на кнопке
-// уже есть inline onclick (btn.onclick) — исключает двойное срабатывание
-// при смешанном деплое. Пара-разметка: xo5.html v2.1.2 снимает inline onclick.
+// уже есть inline onclick (btn.onclick) — иначе при смешанном деплое
+// (старый html + новый ui) toggle сработает дважды за клик.
 // 1.0.22: (a) syncDynamicRow ВСЕГДА держит #controls-dynamic в
 // display:flex — ряд резервирует высоту (styles 1.0.28, блок 41.43):
 // поле не растягивается на пустой ряд и не прыгает при появлении
 // кнопок Отмена/Пнуть/В лобби; расчёт vis убран;
 // (b) бот-кнопка «В лобби» на таче получает короткую метку «🏠 В лобби» —
 // гарантированно влезает в резервный слот на узких экранах.
+// 1.0.23: ПАУЗА БЕЗ НИЖНЕЙ КНОПКИ «Вернуть паузу»: в STATUS_PAUSED
+// #pause-btn скрыт полностью (в STATUS_PLAYING — как прежде «Пауза»);
+// управление готовностью живёт только в модалке «Игра на паузе»:
+// не готов — «▶️ Продолжить»; после нажатия кнопка ЗАМЕНЯЕТСЯ на
+// «⏸️ Вернуть паузу» (отмена готовности), повторное нажатие возвращает
+// «Продолжить»; «Отменить игру» доступна всегда. Замена происходит
+// через перерисовку updatePauseUI() на снапшоте документа паузы.
 // База 1.0.9 не изменена, кроме двух документированных строк:
 // markReturningUser() в showScreen (ветка лобби) и clearReturningUser()
 // в успешном удалении аккаунта.
@@ -85,7 +92,7 @@ import * as core from './xo5-core.js';
 import * as online from './xo5-online.js';
 import * as bot from './xo5-bot.js';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.22';
+export const MODULE_VERSION = '1.0.23';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.ui = MODULE_VERSION;
@@ -1338,7 +1345,9 @@ reqButtons.innerHTML = `<button onclick="acceptPause(this)">Согласен</bu
 reqBanner.classList.add('active');
 }
 } else if (status === STATUS_PAUSED) {
-if (pauseBtn) { pauseBtn.style.display = ''; pauseBtn.textContent = '\u23F8\uFE0F Вернуть паузу'; }
+// 1.0.23: нижней кнопки «Вернуть паузу» больше нет — в паузе #pause-btn
+// скрыт полностью; отмена готовности живёт только в модалке паузы
+if (pauseBtn) pauseBtn.style.display = 'none';
 if (surrenderBtn) surrenderBtn.style.display = 'none';
 disconnectBanner.classList.remove('active');
 const myS = user.uid === game.playerX ? 'X' : 'O';
@@ -1358,9 +1367,11 @@ pauseLimit.textContent += ' — меньше суток!';
 } else {
 pauseLimit.classList.remove('warn');
 }
+// 1.0.23: кнопки модалки меняются по нажатию: «Продолжить» после
+// нажатия заменяется на «Вернуть паузу» (и обратно); «Отменить игру» всегда
 if (myFlag) {
-pauseState.textContent = 'Вы готовы продолжить. Ожидание соперника... (кнопка «Вернуть паузу» внизу отменит готовность)';
-pauseButtons.innerHTML = `<button class="danger" onclick="cancelPausedGame(this)">Отменить игру</button>`;
+pauseState.textContent = 'Вы готовы продолжить. Ожидание соперника... (кнопка «Вернуть паузу» в этом окне отменит готовность)';
+pauseButtons.innerHTML = `<button onclick="requestPause(this)">\u23F8\uFE0F Вернуть паузу</button><button class="danger" onclick="cancelPausedGame(this)">Отменить игру</button>`;
 } else {
 pauseState.textContent = 'Оба игрока должны нажать «Продолжить» для возобновления.';
 pauseButtons.innerHTML = `<button onclick="pressResume(this)">\u25B6\uFE0F Продолжить</button><button class="danger" onclick="cancelPausedGame(this)">Отменить игру</button>`;
