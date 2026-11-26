@@ -56,10 +56,15 @@
 // addEventListener (bindEyeButton), а не через inline onclick в разметке —
 // обработчик не зависит от разрешения inline-атрибутов (CSP/парсеры/
 // расширения) и ставится даже если в боевом xo5.html атрибут потерялся.
-// Защиты: датасет-флаг от двойной привязки при повторной оценке модуля;
-// пропуск привязки, если на кнопке уже есть inline onclick (btn.onclick) —
-// это исключает двойное срабатывание при смешанном деплое (старый html +
-// новый ui). Пара-разметка: xo5.html v2.1.2 снимает inline onclick.
+// Защиты: датасет-флаг от повторной привязки; пропуск, если на кнопке
+// уже есть inline onclick (btn.onclick) — исключает двойное срабатывание
+// при смешанном деплое. Пара-разметка: xo5.html v2.1.2 снимает inline onclick.
+// 1.0.22: (a) syncDynamicRow ВСЕГДА держит #controls-dynamic в
+// display:flex — ряд резервирует высоту (styles 1.0.28, блок 41.43):
+// поле не растягивается на пустой ряд и не прыгает при появлении
+// кнопок Отмена/Пнуть/В лобби; расчёт vis убран;
+// (b) бот-кнопка «В лобби» на таче получает короткую метку «🏠 В лобби» —
+// гарантированно влезает в резервный слот на узких экранах.
 // База 1.0.9 не изменена, кроме двух документированных строк:
 // markReturningUser() в showScreen (ветка лобби) и clearReturningUser()
 // в успешном удалении аккаунта.
@@ -80,7 +85,7 @@ import * as core from './xo5-core.js';
 import * as online from './xo5-online.js';
 import * as bot from './xo5-bot.js';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.21';
+export const MODULE_VERSION = '1.0.22';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.ui = MODULE_VERSION;
@@ -1407,16 +1412,17 @@ const btn = document.getElementById('undo-btn');
 if (btn) btn.style.display = 'none';
 syncDynamicRow();
 }
+// 1.0.22(a): ряд #controls-dynamic — зарезервированная зона (styles 1.0.28,
+// блок 41.43): display:flex держится ВСЕГДА, пустой ряд сохраняет
+// min-height, поэтому поле не растягивается на него и не прыгает
+// при появлении/скрытии кнопок Отмена/Пнуть/В лобби.
 function syncDynamicRow() {
 const row = document.getElementById('controls-dynamic');
 if (!row) return;
-const u = document.getElementById('undo-btn');
-const n = document.getElementById('nudge-btn');
 const b = document.getElementById('bot-lobby-btn');
 // v2.1.1: бот-кнопка «В лобби» не имеет права быть видимой вне бот-режима
 if (b && !bot.isBotMode()) b.style.display = 'none';
-const vis = (u && u.style.display !== 'none') || (n && n.style.display !== 'none') || (b && b.style.display !== 'none');
-row.style.display = vis ? 'flex' : 'none';
+row.style.display = 'flex';
 }
 // ---------- кнопка пинка ----------
 export function updateNudgeButton() {
@@ -1870,7 +1876,11 @@ if (oppStats) oppStats.style.display = 'none';
 const myStats = document.getElementById('my-stats-inline');
 if (myStats) myStats.style.display = 'none';
 const lobbyBtn = ensureBotLobbyButton();
-if (lobbyBtn) lobbyBtn.style.display = '';
+if (lobbyBtn) {
+lobbyBtn.style.display = '';
+// 1.0.22(b): короткая метка на таче — гарантированно влезает в слот
+lobbyBtn.textContent = core.getTouchMode() ? '\u{1F3E0} В лобби' : '\u{1F3E0} В лобби (отмена игры)';
+}
 syncDynamicRow();
 setPlayerNameText();
 }
