@@ -13,9 +13,17 @@
 // создание админа только вручную в Firebase Authentication.
 // 1.0.7: ВИДИМЫЙ ОТКАЗ ОТМЕНЫ ХОДА: catch транзакции window.undoMove
 // больше не тихий — ui.showTopNotification с причиной (соперник уже
-// сходил / игра завершена / ошибка соединения). Пара для ui 1.0.19:
-// после выхода ui 1.0.20 (снятие дублирующей обёртки wrapUndoMoveForFeedback)
-// единственным источником уведомления остаётся этот модуль.
+// сходил / игра завершена / ошибка соединения).
+// 1.0.8: ПАУЗА НЕ СЧИТАЕТСЯ ОТСУТСТВИЕМ: doResumeGame() освежает обе
+// метки playerXLastActivity/playerOLastActivity (документ activity +
+// локальный gameState) — без этого первый checkOpponentStatus() после
+// возобновления видел «отсутствие» равное длительности паузы и сразу
+// завершал игру endReason 'opponent_disconnected'; listenToGame() при
+// переходе в STATUS_PAUSED гасит nudge-пробник (clearNudgeProbe) и
+// forcedDisconnect, чтобы досрочные пробники не выстреливали после
+// возобновления. Останов heartbeats на паузе в updateMyActivity()
+// сохранён (активность = присутствие в игре); отмена по лимиту 72 ч
+// (pause_expired) работает как прежде.
 // ============================================================
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import {
@@ -48,7 +56,7 @@ import * as core from './xo5-core.js';
 import * as ui from './xo5-ui.js';
 import * as bot from './xo5-bot.js';
 // ---------- Версия модуля и регистрация в реестре ----------
-export const MODULE_VERSION = '1.0.7';
+export const MODULE_VERSION = '1.0.8';
 if (typeof window !== 'undefined') {
 window.XO5_VERSIONS = window.XO5_VERSIONS || {};
 window.XO5_VERSIONS.online = MODULE_VERSION;
@@ -1318,6 +1326,11 @@ const myS = currentUser.uid === game.playerX ? 'X' : 'O';
 const oppFlag = myS === 'X' ? !!game.pauseResumeO : !!game.pauseResumeX;
 if (oppFlag && !ui.getLastOppResumeFlag()) ui.playBellSound();
 ui.setLastOppResumeFlag(oppFlag);
+// 1.0.8: nudge-пробник и форс-дисконнект не переносятся через паузу:
+// пробник, зависший до паузы, иначе мог выстрелить forceReconnectMode
+// уже после возобновления и дать ложное завершение по дисконнекту.
+clearNudgeProbe();
+forcedDisconnect = false;
 } else {
 ui.setLastOppResumeFlag(false);
 }
@@ -1707,6 +1720,22 @@ status: STATUS_PLAYING, turnStartTime: newTurnStart, pausedTotalMs: newPausedTot
 pausedAt: null, turnRemainingFrozen: null, pauseResumeX: false, pauseResumeO: false
 });
 upsertCatalogFromGame(currentGame.id, { ...currentGame, status: STATUS_PLAYING, pausedAt: null });
+// 1.0.8: пауза не считается отсутствием. Без освежения меток первый же
+// checkOpponentStatus() после возобновления увидел бы oppAct «до паузы»
+// (heartbeats остановлены в updateMyActivity при STATUS_PAUSED),
+// посчитал since = вся длительность паузы и мгновенно завершил бы игру
+// с endReason 'opponent_disconnected'. Обновляем обе метки в документе
+// activity и в локальном gameState — точка статуса сразу зелёная.
+try {
+await setDoc(activityRef(currentGame.id), {
+playerXLastActivity: now,
+playerOLastActivity: now
+}, { merge: true });
+} catch (e) {
+console.warn('Не удалось освежить активность при возобновлении:', e);
+}
+core.gameState.playerXLastActivity = now;
+core.gameState.playerOLastActivity = now;
 } catch (e) { console.warn('Не удалось возобновить игру:', e); }
 }
 window.cancelPausedGame = async function(btn) {
